@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.Wohnungsverwaltung" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <!-- Customize your dark theme here. -->
+        <item name="colorPrimary">#1e3a8a</item>
+        <item name="colorPrimaryDark">#0f172a</item>
+        <item name="colorAccent">#3b82f6</item>
+    </style>
+
+    <style name="Theme.Wohnungsverwaltung.NoActionBar">
+        <item name="windowActionBar">false</item>
+        <item name="windowNoTitle">true</item>
+    </style>
+
+    <style name="Theme.Wohnungsverwaltung.AppBarOverlay" parent="Theme.MaterialComponents.Light.NoActionBar" />
+
+    <style name="Theme.Wohnungsverwaltung.PopupOverlay" parent="Theme.MaterialComponents.Light" />
+</resources>

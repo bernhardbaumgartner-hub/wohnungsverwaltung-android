@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Steuer-Auswertung & Anlage V</title>
+    <style>
+        :root {
+            --primary: #1e3a8a;
+            --primary-dark: #0f172a;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border: #cbd5e1;
+            --success: #16a34a;
+            --danger: #dc2626;
+            --bg-page: #f1f5f9;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: var(--bg-page); color: var(--text-main); line-height: 1.5; padding: 24px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        
+        .toolbar { max-width: 210mm; margin: 0 auto 20px auto; background: #fff; padding: 16px 24px; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.06); display: flex; justify-content: space-between; align-items: center; }
+        .toolbar select { padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 15px; font-weight: 600; color: var(--text-main); cursor: pointer; }
+        .btn { background-color: var(--primary); color: white; border: none; padding: 8px 16px; font-size: 14px; font-weight: 600; border-radius: 6px; cursor: pointer; }
+        .btn:hover { background-color: #1d4ed8; }
+        
+        .page { max-width: 210mm; margin: 0 auto; background: #fff; padding: 20mm; border-radius: 4px; box-shadow: 0 4px 16px rgba(0,0,0,0.08); }
+        .doc-header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid var(--primary); padding-bottom: 12px; margin-bottom: 24px; }
+        .doc-title { font-size: 21px; font-weight: 800; color: var(--primary); letter-spacing: -0.3px; }
+        .doc-meta { text-align: right; font-size: 12px; color: var(--text-muted); }
+        
+        .apartment-block { margin-bottom: 40px; }
+        .apt-title { font-size: 18px; font-weight: 700; color: var(--primary-dark); margin-bottom: 12px; background: #f8fafc; padding: 10px 14px; border-left: 4px solid var(--primary); border-radius: 4px; }
+        
+        table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 12px; }
+        th { text-align: left; padding: 8px 10px; border-bottom: 2px solid var(--border); color: var(--text-muted); text-transform: uppercase; font-size: 11px; }
+        td { padding: 8px 10px; border-bottom: 1px solid #e2e8f0; }
+        .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+        .val-pos { color: var(--success); font-weight: 600; }
+        .val-neg { color: var(--danger); font-weight: 600; }
+        
+        .subtotal-row td { background: #f8fafc; font-weight: 700; border-top: 1px solid var(--border); border-bottom: 2px solid var(--border); }
+        .total-row td { background: #eff6ff; font-weight: 800; font-size: 15px; border-top: 2px solid var(--primary); border-bottom: 2px solid var(--primary); color: var(--primary-dark); }
+        
+        .status-bar { font-size: 12px; font-weight: bold; margin-top: -10px; margin-bottom: 20px; display: flex; gap: 15px; }
+        .status-ok { color: var(--success); }
+        .status-wait { color: #f59e0b; }
+
+        /* Eingabefelder für Fahrten und Bargeld */
+        .print-input {
+            width: 45px; text-align: center; border: 1px dashed var(--primary); border-radius: 4px; padding: 2px;
+            font-family: inherit; font-weight: 700; color: var(--primary); background: #eff6ff; outline: none;
+        }
+        .print-input:focus { border: 1px solid var(--primary); background: #fff; }
+        
+        .print-input-eur {
+            width: 80px; text-align: right; border: 1px dashed var(--danger); border-radius: 4px; padding: 2px 4px;
+            font-family: inherit; font-weight: 700; color: var(--danger); background: #fef2f2; outline: none;
+        }
+        .print-input-eur:focus { border: 1px solid var(--danger); background: #fff; }
+
+        .btn-back-container { max-width: 210mm; margin: 0 auto 15px auto; }
+        .btn-back { background-color: #f8fafc; color: #1e3a8a; border: 1px solid #cbd5e1; padding: 6px 12px; border-radius: 6px; font-size: 13px; font-weight: bold; cursor: pointer; }
+        .btn-back:hover { background-color: #e2e8f0; }
+
+        @media print {
+            body { background: white; padding: 0; }
+            /* HIER ERGÄNZT: .status-bar wird beim Drucken komplett ausgeblendet */
+            .toolbar, .btn-back-container, .status-bar { display: none !important; }
+            .page { box-shadow: none; padding: 0; margin: 0; max-width: 100%; }
+            
+            .apartment-block { 
+                page-break-inside: avoid; 
+                page-break-after: always; 
+                break-after: page; 
+            }
+            .apartment-block:last-child { 
+                page-break-after: auto; 
+                break-after: auto; 
+            }
+            
+            .print-input, .print-input-eur { border: none !important; background: transparent !important; padding: 0; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="btn-back-container">
+        <button class="btn-back" onclick="window.location.href='/'">🏠 Zurück zum Dashboard</button>
+    </div>
+
+    <div class="toolbar">
+        <div>
+            <label style="font-weight: 700; color: var(--primary); margin-right: 10px;">📅 Steuerjahr wählen:</label>
+            <select id="yearSelect" onchange="renderReport()"></select>
+        </div>
+        <button class="btn" onclick="window.print()">🖨️ Bericht Drucken / als PDF speichern</button>
+    </div>
+
+    <div class="status-bar" style="max-width: 210mm; margin-left: auto; margin-right: auto;">
+        <span id="bankStatus" class="status-wait">○ Bank-Datenbank lädt...</span>
+        <span id="hgStatus" class="status-wait">○ Hausgeld-Datenbank lädt...</span>
+    </div>
+
+    <div class="page">
+        <div class="doc-header">
+            <div>
+                <div class="doc-title">Einnahmen-Überschuss-Rechnung (Anlage V)</div>
+                <div style="font-size: 14px; font-weight: 600; color: var(--text-main); margin-top: 8px;">
+                    Eigentümer: Bernhard Baumgartner<br>
+                    <span style="font-size: 13px; font-weight: 400; color: var(--text-muted);">Angelus-Silesius-Str. 12, 79114 Freiburg</span>
+                </div>
+            </div>
+            <div class="doc-meta">
+                Steuerjahr: <strong id="lblYear" style="font-size: 16px; color: var(--text-main);">----</strong><br>
+                Erstellt am: <span id="lblDate"></span>
+            </div>
+        </div>
+
+        <div id="reportContainer">
+            <!-- Wird dynamisch gefüllt -->
+        </div>
+    </div>
+
+    <script>
+        let bankData = [];
+        let hgData = [];
+        let aggregatedData = {};
+        
+        // Speichert die manuellen Eingaben für Fahrten und Bargeld (bleibt nach Neuladen erhalten!)
+        let manualAdditions = JSON.parse(localStorage.getItem('steuer_manual_inputs')) || {};
+
+        function parseGermanDate(str) {
+            if (!str) return 0;
+            const p = str.replace(/-/g, '.').split('.');
+            return (p.length === 3) ? (p[0].length === 4 ? new Date(p[0], p[1]-1, p[2]).getTime() : new Date(p[2], p[1]-1, p[0]).getTime()) : 0;
+        }
+
+        function formatCurrency(val) {
+            if (val === 0 || isNaN(val)) return '-';
+            return parseFloat(val).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
+        }
+
+        async function init() {
+            const today = new Date();
+            document.getElementById('lblDate').innerText = `${String(today.getDate()).padStart(2, '0')}.${String(today.getMonth() + 1).padStart(2, '0')}.${today.getFullYear()}`;
+
+            // 1. Bankdaten laden
+            try {
+                const res = await fetch('datenbank.json?t=' + new Date().getTime());
+                if (res.ok) {
+                    const data = await res.json();
+                    bankData = data.Buchungen || data;
+                    document.getElementById('bankStatus').innerHTML = '● Bank-Datenbank geladen';
+                    document.getElementById('bankStatus').className = 'status-ok';
+                }
+            } catch (e) {
+                document.getElementById('bankStatus').innerHTML = '⚠️ Fehler beim Laden der datenbank.json';
+            }
+
+            // 2. Hausgelddaten laden
+            const hgUrls = [
+                'Betriebskostenabrechnung/Datenbanken/Hausgeld_Datenbank.json',
+                '../Betriebskostenabrechnung/Datenbanken/Hausgeld_Datenbank.json',
+                'Datenbanken/Hausgeld_Datenbank.json'
+            ];
+            for (const url of hgUrls) {
+                try {
+                    const res = await fetch(url + '?t=' + new Date().getTime());
+                    if (res.ok) {
+                        hgData = await res.json();
+                        if (!Array.isArray(hgData)) hgData = [hgData];
+                        document.getElementById('hgStatus').innerHTML = '● WEG-Hausgelddaten geladen';
+                        document.getElementById('hgStatus').className = 'status-ok';
+                        break;
+                    }
+                } catch (e) {}
+            }
+
+            processData();
+        }
+
+        function initYearObj() {
+            return {
+                "bruehl": { title: "Brühlweg 4a (WE 1 EG), 79291 Merdingen", e_kalt: 0, e_nk: 0, a_grundsteuer: 0, a_versicherung: 0, a_instand_bank: 0, a_rep_weg: 0, a_verw_weg: 0, a_ehr: 0 },
+                "801": { title: "Martin-Luther-Str. 7, Whg. 801, 79312 Emmendingen", e_kalt: 0, e_nk: 0, a_grundsteuer: 0, a_versicherung: 0, a_instand_bank: 0, a_rep_weg: 0, a_verw_weg: 0, a_ehr: 0 },
+                "901": { title: "Martin-Luther-Str. 7, Whg. 901, 79312 Emmendingen", e_kalt: 0, e_nk: 0, a_grundsteuer: 0, a_versicherung: 0, a_instand_bank: 0, a_rep_weg: 0, a_verw_weg: 0, a_ehr: 0 },
+                "allgemein": { title: "Allgemein / Objektübergreifend", a_verein: 0, a_sonstiges: 0 }
+            };
+        }
+
+        function processData() {
+            aggregatedData = {};
+
+            // A) Bankdaten aggregieren
+            bankData.forEach(tx => {
+                const parts = (tx.Datum || '').split('.');
+                if (parts.length !== 3) return;
+                const year = parts[2].length === 2 ? "20" + parts[2] : parts[2];
+
+                if (!aggregatedData[year]) aggregatedData[year] = initYearObj();
+
+                const amt = Math.abs(parseFloat(tx.Betrag) || 0);
+                const objUpper = (tx.Objekt || "").toUpperCase();
+                const uKatUpper = (tx.Unterkat || "").toUpperCase();
+                
+                let target = 'allgemein';
+                if (objUpper.includes("BRUEHL") || objUpper.includes("BRÜHL")) target = 'bruehl';
+                else if (objUpper.includes("801")) target = '801';
+                else if (objUpper.includes("901")) target = '901';
+
+                // Einnahmen
+                if (tx.Hauptkat === "Mieteinnahmen" && tx.Betrag > 0) {
+                    if (tx.IsSplit && tx.SplitDetails) {
+                        aggregatedData[year][target].e_kalt += (parseFloat(tx.SplitDetails.Kaltmiete) || 0) + (parseFloat(tx.SplitDetails.Stellplatz) || 0);
+                        aggregatedData[year][target].e_nk += (parseFloat(tx.SplitDetails.Nebenkosten) || 0);
+                    } else {
+                        aggregatedData[year][target].e_kalt += amt;
+                    }
+                }
+                
+                // Ausgaben Bank
+                if (tx.Hauptkat === "Versicherung") {
+                    aggregatedData[year][target].a_versicherung += amt;
+                }
+                if (tx.Hauptkat === "Instandhaltung" || tx.Unterkat === "Schornsteinfeger") {
+                    aggregatedData[year][target].a_instand_bank += amt;
+                }
+                if (tx.Hauptkat === "Verwaltung" && uKatUpper.includes("VEREIN")) {
+                    aggregatedData[year]['allgemein'].a_verein += amt;
+                }
+                if (uKatUpper.includes("GRUNDSTEUER") || tx.Hauptkat === "Betriebskosten" && uKatUpper.includes("GRUNDSTEUER")) {
+                    if (tx.IsSplit && tx.SplitDetails && tx.SplitDetails.Whg801 !== undefined) {
+                        aggregatedData[year]['801'].a_grundsteuer += Math.abs(tx.SplitDetails.Whg801);
+                        aggregatedData[year]['901'].a_grundsteuer += Math.abs(tx.SplitDetails.Whg901);
+                    } else {
+                        aggregatedData[year][target].a_grundsteuer += amt;
+                    }
+                }
+            });
+
+            // B) Hausgelddaten (WEG) aggregieren
+            hgData.forEach(hg => {
+                const yearMatch = (hg.Abrechnungszeitraum || "").match(/\d{4}/g);
+                if (!yearMatch) return;
+                const year = yearMatch[yearMatch.length - 1]; // Nimmt das Endjahr des Zeitraums
+
+                if (!aggregatedData[year]) aggregatedData[year] = initYearObj();
+
+                const objUpper = (hg.Objekt + " " + hg.Einheit + " " + hg.Datei).toUpperCase();
+                let target = 'allgemein';
+                if (objUpper.includes("BRUEHL") || objUpper.includes("BRÜHL") || objUpper.includes("WE 1")) target = 'bruehl';
+                else if (objUpper.includes("801")) target = '801';
+                else if (objUpper.includes("901")) target = '901';
+
+                aggregatedData[year][target].a_rep_weg += Math.abs(parseFloat(hg.SummeRep) || 0);
+                aggregatedData[year][target].a_verw_weg += Math.abs(parseFloat(hg.SummeVerw) || 0);
+                aggregatedData[year][target].a_ehr += Math.abs(parseFloat(hg.EntnahmeEHR) || 0);
+            });
+
+            // Dropdown füllen
+            const years = Object.keys(aggregatedData).sort().reverse();
+            const select = document.getElementById('yearSelect');
+            select.innerHTML = '';
+            years.forEach(y => {
+                const opt = document.createElement('option');
+                opt.value = y;
+                opt.innerText = y;
+                select.appendChild(opt);
+            });
+
+            renderReport();
+        }
+
+        // Wird aufgerufen, wenn manuelle Zahlen (Fahrten, Bargeld) eingetippt werden
+        window.recalc = function(key) {
+            const year = document.getElementById('yearSelect').value;
+            let man = manualAdditions[year][key];
+            
+            // Werte auslesen und speichern
+            if (key !== 'allgemein') {
+                man.fahrten = parseInt(document.getElementById('inp_fahrten_' + key).value) || 0;
+                man.km = parseInt(document.getElementById('inp_km_' + key).value) || 0;
+                let fahrtenKosten = man.fahrten * man.km * 0.30;
+                document.getElementById('calc_fahrten_' + key).innerText = fahrtenKosten > 0 ? formatCurrency(fahrtenKosten) : '-';
+            }
+            
+            let bargeldStr = document.getElementById('inp_bargeld_' + key).value.replace(/\./g, '').replace(',', '.');
+            man.bargeld = parseFloat(bargeldStr) || 0;
+            
+            // Im Browser zwischenspeichern
+            localStorage.setItem('steuer_manual_inputs', JSON.stringify(manualAdditions));
+
+            // Summen neu berechnen
+            const obj = aggregatedData[year][key];
+            const sumEinnahmen = (obj.e_kalt || 0) + (obj.e_nk || 0);
+            const sumAusgabenDb = (obj.a_grundsteuer || 0) + (obj.a_versicherung || 0) + (obj.a_instand_bank || 0) + 
+                                  (obj.a_rep_weg || 0) + (obj.a_verw_weg || 0) + (obj.a_ehr || 0) + (obj.a_verein || 0);
+            
+            const fahrtenKosten = (key !== 'allgemein') ? (man.fahrten * man.km * 0.30) : 0;
+            const totalAusgaben = sumAusgabenDb + fahrtenKosten + man.bargeld;
+            const diff = sumEinnahmen - totalAusgaben;
+            
+            document.getElementById('sum_ausgaben_' + key).innerText = formatCurrency(totalAusgaben);
+            
+            const diffEl = document.getElementById('diff_total_' + key);
+            diffEl.innerText = formatCurrency(diff);
+            diffEl.style.color = diff >= 0 ? 'var(--success)' : 'var(--danger)';
+        };
+
+        function renderReport() {
+            const year = document.getElementById('yearSelect').value;
+            if (!year) return;
+            document.getElementById('lblYear').innerText = year;
+
+            // State für manuelle Eingaben initialisieren, falls noch nicht vorhanden
+            if (!manualAdditions[year]) manualAdditions[year] = {};
+
+            const data = aggregatedData[year];
+            const container = document.getElementById('reportContainer');
+            container.innerHTML = '';
+
+            const order = ["bruehl", "801", "901", "allgemein"];
+
+            order.forEach(key => {
+                const obj = data[key];
+                
+                if (!manualAdditions[year][key]) {
+                    // Standard-Entfernungen von Freiburg initialisieren
+                    let defaultKm = 0;
+                    if (key === 'bruehl') defaultKm = 30; // 15km hin & zurück
+                    if (key === '801' || key === '901') defaultKm = 36; // 18km hin & zurück
+                    manualAdditions[year][key] = { fahrten: 0, km: defaultKm, bargeld: 0 };
+                }
+                const man = manualAdditions[year][key];
+
+                const sumEinnahmen = (obj.e_kalt || 0) + (obj.e_nk || 0);
+                const sumAusgabenDb = (obj.a_grundsteuer || 0) + (obj.a_versicherung || 0) + (obj.a_instand_bank || 0) + 
+                                      (obj.a_rep_weg || 0) + (obj.a_verw_weg || 0) + (obj.a_ehr || 0) + (obj.a_verein || 0);
+                
+                const fahrtenKosten = (key !== 'allgemein') ? (man.fahrten * man.km * 0.30) : 0;
+                const totalAusgaben = sumAusgabenDb + fahrtenKosten + man.bargeld;
+                
+                // Prüfen ob überhaupt Daten vorhanden sind
+                if (sumEinnahmen === 0 && totalAusgaben === 0) return;
+
+                const html = `
+                <div class="apartment-block">
+                    <div class="apt-title">${obj.title}</div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width: 65%;">Bezeichnung</th>
+                                <th class="num" style="width: 15%;">Einnahmen</th>
+                                <th class="num" style="width: 20%;">Ausgaben</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${key !== 'allgemein' ? `
+                            <tr><td>Nettokaltmiete + Stellplatz</td><td class="num val-pos">${formatCurrency(obj.e_kalt)}</td><td class="num"></td></tr>
+                            <tr><td>Umlagen / Nebenkostenvorauszahlungen</td><td class="num val-pos">${formatCurrency(obj.e_nk)}</td><td class="num"></td></tr>
+                            ` : ''}
+                            
+                            ${obj.a_grundsteuer > 0 ? `<tr><td>Grundsteuer</td><td class="num"></td><td class="num val-neg">${formatCurrency(obj.a_grundsteuer)}</td></tr>` : ''}
+                            ${obj.a_versicherung > 0 ? `<tr><td>Versicherungen (Rechtsschutz, Gebäude etc.)</td><td class="num"></td><td class="num val-neg">${formatCurrency(obj.a_versicherung)}</td></tr>` : ''}
+                            ${obj.a_instand_bank > 0 ? `<tr><td>Instandhaltung / Schornsteinfeger (Bankauszug)</td><td class="num"></td><td class="num val-neg">${formatCurrency(obj.a_instand_bank)}</td></tr>` : ''}
+                            ${obj.a_verein > 0 ? `<tr><td>Haus & Grund Vereinsbeitrag</td><td class="num"></td><td class="num val-neg">${formatCurrency(obj.a_verein)}</td></tr>` : ''}
+                            
+                            ${obj.a_rep_weg > 0 ? `<tr><td>Instandhaltung / Reparaturen (lt. WEG-Abrechnung)</td><td class="num"></td><td class="num val-neg">${formatCurrency(obj.a_rep_weg)}</td></tr>` : ''}
+                            ${obj.a_verw_weg > 0 ? `<tr><td>Verwaltungskosten (lt. WEG-Abrechnung)</td><td class="num"></td><td class="num val-neg">${formatCurrency(obj.a_verw_weg)}</td></tr>` : ''}
+                            ${obj.a_ehr > 0 ? `<tr><td>Entnahme aus Erhaltungsrücklage (Aufwand WEG)</td><td class="num"></td><td class="num val-neg">${formatCurrency(obj.a_ehr)}</td></tr>` : ''}
+                            
+                            ${key !== 'allgemein' ? `
+                            <tr>
+                                <td>Fahrten zum Objekt (<input type="number" id="inp_fahrten_${key}" value="${man.fahrten === 0 ? '' : man.fahrten}" oninput="recalc('${key}')" class="print-input" placeholder="0"> Fahrten à <input type="number" id="inp_km_${key}" value="${man.km}" oninput="recalc('${key}')" class="print-input"> km hin/zurück x 0,30 €)</td>
+                                <td class="num"></td>
+                                <td class="num val-neg" id="calc_fahrten_${key}">${fahrtenKosten > 0 ? formatCurrency(fahrtenKosten) : '-'}</td>
+                            </tr>
+                            ` : ''}
+                            
+                            <tr>
+                                <td>Bargeld für Trinkgelder / Porti / Sonstiges (manuell)</td>
+                                <td class="num"></td>
+                                <td class="num val-neg">
+                                    <input type="text" id="inp_bargeld_${key}" value="${man.bargeld === 0 ? '' : formatCurrency(man.bargeld).replace(' €','')}" onchange="recalc('${key}'); this.value = manualAdditions[document.getElementById('yearSelect').value]['${key}'].bargeld > 0 ? formatCurrency(manualAdditions[document.getElementById('yearSelect').value]['${key}'].bargeld).replace(' €','') : ''" class="print-input-eur" placeholder="-"> <span style="font-weight:700; color:var(--danger)">€</span>
+                                </td>
+                            </tr>
+                        </tbody>
+                        <tfoot>
+                            <tr class="subtotal-row">
+                                <td>Zwischensummen</td>
+                                <td class="num val-pos">${formatCurrency(sumEinnahmen)}</td>
+                                <td class="num val-neg" id="sum_ausgaben_${key}">${formatCurrency(totalAusgaben)}</td>
+                            </tr>
+                            <tr class="total-row">
+                                <td>Überschuss / Unterdeckung (Anlage V)</td>
+                                <td colspan="2" class="num" id="diff_total_${key}" style="text-align: right; color: ${sumEinnahmen - totalAusgaben >= 0 ? 'var(--success)' : 'var(--danger)'};">
+                                    ${formatCurrency(sumEinnahmen - totalAusgaben)}
+                                </td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+                `;
+                container.innerHTML += html;
+            });
+        }
+
+        window.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>

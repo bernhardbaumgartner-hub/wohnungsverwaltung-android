@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wohnungsverwaltung &bull; Dashboard</title>
+    <style>
+        :root {
+            --primary: #1e3a8a;
+            --primary-dark: #0f172a;
+            --primary-light: #eff6ff;
+            --accent: #3b82f6;
+            --bg-page: #f1f5f9;
+            --card-bg: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --success: #16a34a;
+            --success-bg: #f0fdf4;
+            --danger: #dc2626;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.05);
+            --shadow-md: 0 4px 12px -2px rgba(0,0,0,0.08);
+            --font-stack: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: var(--font-stack); background-color: var(--bg-page); color: var(--text-main); line-height: 1.5; padding: 24px 16px; }
+        .container { max-width: 1200px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px; }
+        .header { display: flex; justify-content: space-between; align-items: center; background: var(--card-bg); padding: 18px 24px; border-radius: 12px; box-shadow: var(--shadow-sm); border: 1px solid var(--border); }
+        .header-title h1 { font-size: 22px; font-weight: 800; color: var(--primary); letter-spacing: -0.3px; }
+        .header-title p { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
+        .header-controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+        .btn { background-color: var(--primary); color: #ffffff; border: none; padding: 8px 16px; font-size: 13px; font-weight: 600; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; text-decoration: none; transition: all 0.2s ease; }
+        .btn:hover { background-color: #1d4ed8; }
+        .btn-secondary { background-color: #f8fafc; color: var(--text-main); border: 1px solid var(--border); }
+        .btn-secondary:hover { background-color: #f1f5f9; }
+        .btn-dark { background-color: #334155; }
+        .btn-dark:hover { background-color: #1e293b; }
+        .btn-danger { background-color: var(--danger); }
+        .btn-danger:hover { background-color: #b91c1c; }
+        .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+        .kpi-card { background: var(--card-bg); padding: 18px 20px; border-radius: 12px; box-shadow: var(--shadow-sm); border: 1px solid var(--border); display: flex; flex-direction: column; justify-content: space-between; }
+        .kpi-card.highlight { border-left: 5px solid var(--primary); background: linear-gradient(to right, #ffffff, #fafcff); }
+        .kpi-label { font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; }
+        .kpi-value { font-size: 24px; font-weight: 800; margin: 6px 0 2px 0; font-variant-numeric: tabular-nums; }
+        .kpi-subtext { font-size: 12px; color: var(--text-muted); }
+        .section-heading { font-size: 16px; font-weight: 700; color: var(--primary); text-transform: uppercase; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; }
+        .property-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 20px; }
+        .property-card { background: var(--card-bg); border-radius: 12px; border: 1px solid var(--border); box-shadow: var(--shadow-md); display: flex; flex-direction: column; transition: transform 0.15s ease; }
+        .property-card:hover { transform: translateY(-2px); }
+        .property-header { background: #fafbfc; padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: flex-start; }
+        .property-title { font-size: 15px; font-weight: 700; color: var(--text-main); }
+        .property-location { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+        .badge-status { font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 20px; background: var(--success-bg); color: var(--success); border: 1px solid #bbf7d0; }
+        .property-body { padding: 18px 20px; flex: 1; display: flex; flex-direction: column; gap: 14px; }
+        .tenant-box { background: var(--primary-light); border: 1px solid #dbeafe; border-radius: 8px; padding: 10px 14px; display: flex; justify-content: space-between; align-items: center; }
+        .tenant-name { font-size: 13.5px; font-weight: 700; color: var(--primary); }
+        .tenant-period { font-size: 11px; color: #475569; }
+        .rent-details-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 14px; font-size: 12.5px; }
+        .rent-item span { display: block; color: var(--text-muted); font-size: 10.5px; text-transform: uppercase; font-weight: 600; margin-bottom: 2px; }
+        .rent-item strong { font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; }
+        .property-footer { background: #fafbfc; border-top: 1px solid var(--border); padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; }
+        .total-rent-label { font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; }
+        .total-rent-amount { font-size: 17px; font-weight: 800; color: var(--primary); font-variant-numeric: tabular-nums; }
+        .modules-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+        .module-link { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; display: flex; align-items: center; gap: 16px; text-decoration: none; color: var(--text-main); box-shadow: var(--shadow-sm); transition: all 0.2s ease; cursor: pointer; }
+        .module-link:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: var(--shadow-md); }
+        .module-icon { font-size: 28px; background: var(--primary-light); width: 48px; height: 48px; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: var(--primary); flex-shrink: 0; }
+        .module-info h3 { font-size: 14px; font-weight: 700; color: var(--text-main); }
+        .module-info p { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+        .journal-box { background: var(--card-bg); border-radius: 12px; border: 1px solid var(--border); box-shadow: var(--shadow-sm); padding: 18px 20px; overflow: hidden; }
+        table.journal-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 10px; }
+        table.journal-table th { text-align: left; padding: 8px 10px; background-color: #f8fafc; color: var(--text-muted); font-weight: 700; font-size: 10.5px; text-transform: uppercase; border-bottom: 1px solid var(--border); }
+        table.journal-table td { padding: 8px 10px; border-bottom: 1px solid #f1f5f9; color: var(--text-main); }
+        .num-pos { color: var(--success); font-weight: 700; text-align: right; }
+        .num-neg { color: var(--danger); font-weight: 700; text-align: right; }
+
+        /* MODAL / EINSTELLUNGEN */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.6); display: none; justify-content: center; align-items: center; z-index: 1000; padding: 16px; }
+        .modal-content { background: #ffffff; width: 100%; max-width: 560px; border-radius: 12px; border: 1px solid var(--border); }
+        .modal-header { background: #f8fafc; padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+        .modal-header h3 { font-size: 16px; font-weight: 800; color: var(--primary); }
+        .modal-body { padding: 20px; display: flex; flex-direction: column; gap: 14px; font-size: 13px; }
+        .form-group { display: flex; flex-direction: column; gap: 5px; }
+        .form-group label { font-weight: 700; color: var(--text-muted); font-size: 11.5px; text-transform: uppercase; }
+        .form-control { padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px; font-weight: 600; color: var(--text-main); width: 100%; }
+        .modal-footer { background: #f8fafc; padding: 14px 20px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 10px; }
+        .hidden { display: none; }
+
+        /* DRUCK-OPTIMIERUNG: ZWINGEND 1 KARTE PRO SEITE */
+        @media print {
+            body { background-color: #fff; padding: 0; margin: 0; }
+            
+            /* Alles Unnötige komplett ausblenden */
+            .header, .kpi-grid, #modulesSection, .journal-box, .section-heading { 
+                display: none !important; 
+            }
+            
+            /* Container zwingend auf Block setzen, da Flexbox Seitenumbrüche verhindert */
+            .container { display: block !important; max-width: 100%; gap: 0; padding: 0; margin: 0; }
+            .property-grid { display: block !important; }
+            
+            /* Jede Mieterkarte optisch als eigenes Blatt definieren */
+            .property-card { 
+                display: block !important;
+                box-shadow: none !important; 
+                border: 2px solid #cbd5e1 !important; 
+                margin: 0 0 20px 0 !important;
+                page-break-before: always !important; /* Zwingt den Drucker VOR der Karte auf ein neues Blatt */
+                break-before: page !important;
+                page-break-inside: avoid !important;
+            }
+            
+            /* Die ERSTE Karte darf kein neues Blatt davor erzeugen (sonst ist Seite 1 leer) */
+            .property-card:first-child {
+                page-break-before: avoid !important;
+                break-before: auto !important;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header class="header">
+            <div class="header-title">
+                <h1>🏢 Wohnungsverwaltung &bull; Immobilien-Portal</h1>
+                <p>Verwaltung der Liegenschaften Emmendingen &amp; Merdingen &bull; Eigentümer: Bernhard Baumgartner</p>
+            </div>
+            <div class="header-controls">
+                <button class="btn btn-secondary" onclick="window.print()" title="Mieterübersicht drucken">🖨️ Drucken</button>
+                <input type="file" id="dbFileInput" accept=".json" class="hidden" onchange="handleFileSelect(event)">
+                <button class="btn btn-secondary" onclick="document.getElementById('dbFileInput').click()">📂 datenbank.json laden</button>
+                <button class="btn btn-dark" onclick="openSettingsModal()" title="Pfade anpassen">⚙️ Pfade</button>
+                <a id="linkKontoverwaltung" href="auswertung.html" class="btn">📊 Kontoverwaltung öffnen</a>
+                <button class="btn btn-danger" onclick="shutdownServer()" title="Beendet den Hintergrund-Server">🛑 Beenden</button>
+            </div>
+        </header>
+
+        <section class="kpi-grid">
+            <div class="kpi-card highlight">
+                <span class="kpi-label">🏦 Aktueller Kontostand</span>
+                <div class="kpi-value" id="kpiBankSaldo" style="color: var(--primary);">Lade...</div>
+                <span class="kpi-subtext" id="kpiBankSub">Stand per Bankauszug</span>
+            </div>
+            <div class="kpi-card">
+                <span class="kpi-label">💶 Kaltmiete + Stellplatz mtl.</span>
+                <div class="kpi-value" id="kpiKaltStellplatz" style="color: var(--success);">Lade...</div>
+                <span class="kpi-subtext">3 Einheiten (Live per Bankeingang)</span>
+            </div>
+            <div class="kpi-card">
+                <span class="kpi-label">💧 Nebenkostenvorschüsse mtl.</span>
+                <div class="kpi-value" id="kpiNebenkosten">Lade...</div>
+                <span class="kpi-subtext">Live aus Vorauszahlungen berechnet</span>
+            </div>
+            <div class="kpi-card">
+                <span class="kpi-label">🏠 Gesamtmiete mtl.</span>
+                <div class="kpi-value" id="kpiGesamtmiete" style="color: var(--primary-dark);">Lade...</div>
+                <span class="kpi-subtext">100% Vermietungsquote</span>
+            </div>
+        </section>
+
+        <section>
+            <div class="section-heading">
+                <span>Übersicht der Mietobjekte &amp; Mieter</span>
+                <span style="font-size: 12px; color: var(--text-muted); text-transform: none;">3 Wohnungen aktiv</span>
+            </div>
+
+            <div class="property-grid">
+                <!-- Brühlweg 4a -->
+                <div class="property-card">
+                    <div class="property-header">
+                        <div><div class="property-title">Brühlweg 4a, Merdingen</div><div class="property-location">WE 1 EG &bull; 79291 Merdingen</div></div>
+                        <span class="badge-status">Vermietet</span>
+                    </div>
+                    <div class="property-body">
+                        <div class="tenant-box">
+                            <div><div class="tenant-name">Sophie Palm / Alexander Jaensch</div><div class="tenant-period">Mietbeginn: 01.03.2026 (vorm. Hoffmann)</div></div>
+                            <span style="font-size: 18px;">🔑</span>
+                        </div>
+                        <div class="rent-details-grid">
+                            <div class="rent-item"><span>Wohnfläche:</span><strong id="bruehlQm" style="color: var(--text-main);">Lade...</strong></div>
+                            <div class="rent-item"><span>Miete pro m&sup2;:</span><strong id="bruehlQmMiete" style="color: var(--text-muted);">Lade...</strong></div>
+                            <div class="rent-item"><span>Nettokaltmiete:</span><strong id="bruehlKalt">Lade...</strong></div>
+                            <div class="rent-item"><span>Stellplatz / Garage:</span><strong id="bruehlStell">Lade...</strong></div>
+                            <div class="rent-item"><span>Nebenkostenvorschuss:</span><strong id="bruehlNK">Lade...</strong></div>
+                            <div class="rent-item"><span>Hausgeld (WEG) mtl.:</span><strong id="bruehlHausgeld" style="color: var(--danger);">Lade...</strong></div>
+                            <div class="rent-item" style="grid-column: span 2;"><span>MEA-Anteil:</span><strong style="color: var(--text-muted);">273,000 / 1000</strong></div>
+                        </div>
+                        <div id="bruehlIncrease" style="display: none; font-size: 11.5px; color: #b45309; background: #fef3c7; padding: 6px 10px; border-radius: 6px; border: 1px solid #fde68a; margin-top: 6px; line-height: 1.6;"></div>
+                    </div>
+                    <div class="property-footer">
+                        <span class="total-rent-label">Warmmiete mtl.:</span><span class="total-rent-amount" id="bruehlWarm">Lade...</span>
+                    </div>
+                </div>
+
+                <!-- Martin-Luther-Str. 7, 801 -->
+                <div class="property-card">
+                    <div class="property-header">
+                        <div><div class="property-title">Martin-Luther-Str. 7, 801</div><div class="property-location">Whg. 801 (8. OG) &bull; 79312 Emmendingen</div></div>
+                        <span class="badge-status">Vermietet</span>
+                    </div>
+                    <div class="property-body">
+                        <div class="tenant-box">
+                            <div><div class="tenant-name">Natalia Müller</div><div class="tenant-period">Mietbeginn: 01.01.2021</div></div>
+                            <span style="font-size: 18px;">🔑</span>
+                        </div>
+                        <div class="rent-details-grid">
+                            <div class="rent-item"><span>Wohnfläche:</span><strong id="mls801Qm" style="color: var(--text-main);">Lade...</strong></div>
+                            <div class="rent-item"><span>Miete pro m&sup2;:</span><strong id="mls801QmMiete" style="color: var(--text-muted);">Lade...</strong></div>
+                            <div class="rent-item"><span>Nettokaltmiete:</span><strong id="mls801Kalt">Lade...</strong></div>
+                            <div class="rent-item"><span>Stellplatz:</span><strong id="mls801Stell">Lade...</strong></div>
+                            <div class="rent-item"><span>Nebenkostenvorschuss:</span><strong id="mls801NK">Lade...</strong></div>
+                            <div class="rent-item"><span>Hausgeld (WEG) mtl.:</span><strong id="mls801Hausgeld" style="color: var(--danger);">Lade...</strong></div>
+                            <div class="rent-item" style="grid-column: span 2;"><span>MEA-Anteil:</span><strong style="color: var(--text-muted);">13,870 / 1000</strong></div>
+                        </div>
+                        <div id="mls801Increase" style="display: none; font-size: 11.5px; color: #b45309; background: #fef3c7; padding: 6px 10px; border-radius: 6px; border: 1px solid #fde68a; margin-top: 6px; line-height: 1.6;"></div>
+                    </div>
+                    <div class="property-footer">
+                        <span class="total-rent-label">Warmmiete mtl.:</span><span class="total-rent-amount" id="mls801Warm">Lade...</span>
+                    </div>
+                </div>
+
+                <!-- Martin-Luther-Str. 7, 901 -->
+                <div class="property-card">
+                    <div class="property-header">
+                        <div><div class="property-title">Martin-Luther-Str. 7, 901</div><div class="property-location">Whg. 901 (9. OG) &bull; 79312 Emmendingen</div></div>
+                        <span class="badge-status">Vermietet</span>
+                    </div>
+                    <div class="property-body">
+                        <div class="tenant-box">
+                            <div><div class="tenant-name">Martin Rusev</div><div class="tenant-period">Mietbeginn: 01.09.2025 (vorm. Grätz)</div></div>
+                            <span style="font-size: 18px;">🔑</span>
+                        </div>
+                        <div class="rent-details-grid">
+                            <div class="rent-item"><span>Wohnfläche:</span><strong id="mls901Qm" style="color: var(--text-main);">Lade...</strong></div>
+                            <div class="rent-item"><span>Miete pro m&sup2;:</span><strong id="mls901QmMiete" style="color: var(--text-muted);">Lade...</strong></div>
+                            <div class="rent-item"><span>Nettokaltmiete:</span><strong id="mls901Kalt">Lade...</strong></div>
+                            <div class="rent-item"><span>Stellplatz:</span><strong id="mls901Stell">Lade...</strong></div>
+                            <div class="rent-item"><span>Nebenkostenvorschuss:</span><strong id="mls901NK">Lade...</strong></div>
+                            <div class="rent-item"><span>Hausgeld (WEG) mtl.:</span><strong id="mls901Hausgeld" style="color: var(--danger);">Lade...</strong></div>
+                            <div class="rent-item" style="grid-column: span 2;"><span>MEA-Anteil:</span><strong style="color: var(--text-muted);">13,870 / 1000</strong></div>
+                        </div>
+                        <div id="mls901Increase" style="display: none; font-size: 11.5px; color: #b45309; background: #fef3c7; padding: 6px 10px; border-radius: 6px; border: 1px solid #fde68a; margin-top: 6px; line-height: 1.6;"></div>
+                    </div>
+                    <div class="property-footer">
+                        <span class="total-rent-label">Warmmiete mtl.:</span><span class="total-rent-amount" id="mls901Warm">Lade...</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="modulesSection">
+            <div class="section-heading"><span>Abrechnungs- &amp; Verwaltungsmodule</span></div>
+            <div class="modules-grid">
+                <a id="linkModuleNk" href="../Betriebskostenabrechnung/nebenkostenabrechnung.html" class="module-link">
+                    <div class="module-icon">📑</div>
+                    <div class="module-info">
+                        <h3>Nebenkostenabrechnung</h3>
+                        <p>Abrechnung für Mieter erstellen, drucken und als PDF exportieren</p>
+                    </div>
+                </a>
+                <a id="linkModuleHg" href="../Betriebskostenabrechnung/Hausgeld_Gesamtpruefung.html" class="module-link">
+                    <div class="module-icon">🏢</div>
+                    <div class="module-info">
+                        <h3>Hausgeldabrechnungen (WEG)</h3>
+                        <p>Verwalterabrechnungen einsehen, prüfen &amp; Erhaltungsrücklage prüfen</p>
+                    </div>
+                </a>
+                <a id="linkModuleKv" href="auswertung.html" class="module-link">
+                    <div class="module-icon">📊</div>
+                    <div class="module-info">
+                        <h3>Kontoverwaltung</h3>
+                        <p>Bankbuchungen, Mieteingänge, Ausgaben &amp; Splits verwalten</p>
+                    </div>
+                </a>
+                <a id="linkModuleSt" href="steuer_auswertung.html" class="module-link">
+                    <div class="module-icon" style="color: #059669; background: #d1fae5;">🏛️</div>
+                    <div class="module-info">
+                        <h3>Finanzamt &amp; Steuer (Anlage V)</h3>
+                        <p>Einnahmen &amp; Werbungskosten pro Wohnung auswerten und drucken</p>
+                    </div>
+                </a>
+            </div>
+        </section>
+
+        <section class="journal-box">
+            <div class="section-heading" style="margin-bottom: 6px;">
+                <span>Letzte Bankbuchungen</span>
+                <span id="journalCount" style="font-size: 12px; color: var(--text-muted); text-transform: none;">Lade Buchungen...</span>
+            </div>
+            <table class="journal-table">
+                <thead>
+                    <tr><th style="width: 90px;">Datum</th><th style="width: 200px;">Objekt</th><th>Buchungstext</th><th style="width: 140px;">Kategorie</th><th style="width: 110px; text-align: right;">Betrag</th></tr>
+                </thead>
+                <tbody id="journalTbody">
+                    <tr><td colspan="5" style="color: var(--text-muted); font-style: italic; text-align: center; padding: 14px;">Lade datenbank.json...</td></tr>
+                </tbody>
+            </table>
+        </section>
+    </div>
+
+    <!-- EINSTELLUNGEN MODAL -->
+    <div class="modal-overlay" id="settingsModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>⚙️ Pfade &amp; Dateinamen anpassen</h3>
+                <button class="btn btn-secondary" style="padding: 4px 8px; font-size: 11px;" onclick="closeSettingsModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group"><label>Pfad zur Bank-Datenbank (datenbank.json):</label><input type="text" id="settingDbPath" class="form-control" value="datenbank.json"></div>
+                <div class="form-group"><label>Pfad zur Kontoverwaltung:</label><input type="text" id="settingLinkKv" class="form-control" value="auswertung.html"></div>
+                <div class="form-group"><label>Pfad zur Nebenkostenabrechnung:</label><input type="text" id="settingLinkNk" class="form-control" value="../Betriebskostenabrechnung/nebenkostenabrechnung.html"></div>
+                <div class="form-group"><label>Pfad zur Hausgeld-Prüfung:</label><input type="text" id="settingLinkHg" class="form-control" value="../Betriebskostenabrechnung/Hausgeld_Gesamtpruefung.html"></div>
+                <div class="form-group"><label>Pfad zur Steuer-Auswertung:</label><input type="text" id="settingLinkSt" class="form-control" value="steuer_auswertung.html"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="resetSettings()">Standard zurücksetzen</button>
+                <button class="btn" onclick="saveSettings()">Speichern &amp; Anwenden</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let dbData = [];
+        let startSaldo = 0.0;
+        let startDatum = "01.01.2025";
+
+        let appConfig = {
+            dbPath: localStorage.getItem('cfg_dbPath') || 'datenbank.json',
+            linkKv: localStorage.getItem('cfg_linkKv') || 'auswertung.html',
+            linkNk: localStorage.getItem('cfg_linkNk') || '../Betriebskostenabrechnung/nebenkostenabrechnung.html',
+            linkHg: localStorage.getItem('cfg_linkHg') || '../Betriebskostenabrechnung/Hausgeld_Gesamtpruefung.html',
+            linkSt: localStorage.getItem('cfg_linkSt') || 'steuer_auswertung.html'
+        };
+
+        function applyConfigToLinks() {
+            document.getElementById('linkKontoverwaltung').href = appConfig.linkKv;
+            document.getElementById('linkModuleNk').href = appConfig.linkNk;
+            document.getElementById('linkModuleHg').href = appConfig.linkHg;
+            document.getElementById('linkModuleKv').href = appConfig.linkKv;
+            document.getElementById('linkModuleSt').href = appConfig.linkSt;
+        }
+
+        function openSettingsModal() {
+            document.getElementById('settingDbPath').value = appConfig.dbPath;
+            document.getElementById('settingLinkKv').value = appConfig.linkKv;
+            document.getElementById('settingLinkNk').value = appConfig.linkNk;
+            document.getElementById('settingLinkHg').value = appConfig.linkHg;
+            document.getElementById('settingLinkSt').value = appConfig.linkSt;
+            document.getElementById('settingsModal').style.display = 'flex';
+        }
+
+        function closeSettingsModal() {
+            document.getElementById('settingsModal').style.display = 'none';
+        }
+
+        function saveSettings() {
+            appConfig.dbPath = document.getElementById('settingDbPath').value.trim() || 'datenbank.json';
+            appConfig.linkKv = document.getElementById('settingLinkKv').value.trim() || 'auswertung.html';
+            appConfig.linkNk = document.getElementById('settingLinkNk').value.trim() || '../Betriebskostenabrechnung/nebenkostenabrechnung.html';
+            appConfig.linkHg = document.getElementById('settingLinkHg').value.trim() || '../Betriebskostenabrechnung/Hausgeld_Gesamtpruefung.html';
+            appConfig.linkSt = document.getElementById('settingLinkSt').value.trim() || 'steuer_auswertung.html';
+
+            localStorage.setItem('cfg_dbPath', appConfig.dbPath);
+            localStorage.setItem('cfg_linkKv', appConfig.linkKv);
+            localStorage.setItem('cfg_linkNk', appConfig.linkNk);
+            localStorage.setItem('cfg_linkHg', appConfig.linkHg);
+            localStorage.setItem('cfg_linkSt', appConfig.linkSt);
+
+            applyConfigToLinks();
+            closeSettingsModal();
+            loadDatabase();
+        }
+
+        function resetSettings() {
+            localStorage.removeItem('cfg_dbPath');
+            localStorage.removeItem('cfg_linkKv');
+            localStorage.removeItem('cfg_linkNk');
+            localStorage.removeItem('cfg_linkHg');
+            localStorage.removeItem('cfg_linkSt');
+            appConfig = { 
+                dbPath: 'datenbank.json', 
+                linkKv: 'auswertung.html', 
+                linkNk: '../Betriebskostenabrechnung/nebenkostenabrechnung.html', 
+                linkHg: '../Betriebskostenabrechnung/Hausgeld_Gesamtpruefung.html',
+                linkSt: 'steuer_auswertung.html'
+            };
+            applyConfigToLinks();
+            closeSettingsModal();
+            loadDatabase();
+        }
+
+        async function shutdownServer() {
+            if (confirm("Möchten Sie den Hintergrund-Server wirklich beenden?\n\nDas Konsolenfenster schließt sich und automatische Datenspeicherungen sind dann bis zum Neustart nicht mehr möglich.")) {
+                try {
+                    await fetch('http://localhost:8080/shutdown');
+                    alert("Der Webserver wurde erfolgreich beendet. Sie können den Browser-Tab jetzt schließen.");
+                } catch (e) {
+                    alert("Der Server ist bereits offline oder nicht erreichbar.");
+                }
+            }
+        }
+
+        function parseGermanDate(str) {
+            if (!str) return 0;
+            const p = str.replace(/-/g, '.').split('.');
+            return (p.length === 3) ? (p[0].length === 4 ? new Date(p[0], p[1]-1, p[2]).getTime() : new Date(p[2], p[1]-1, p[0]).getTime()) : 0;
+        }
+
+        function formatCurrency(val) {
+            if (val === null || val === undefined || isNaN(val)) return '0,00 &euro;';
+            return parseFloat(val).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' &euro;';
+        }
+
+        function processDatabase(jsonObj) {
+            dbData = jsonObj.Buchungen || jsonObj;
+            startSaldo = jsonObj.StartSaldo || 0.0;
+            startDatum = jsonObj.StartDatum || "01.01.2025";
+
+            dbData.sort((a, b) => parseGermanDate(a.Datum) - parseGermanDate(b.Datum));
+
+            const startTs = parseGermanDate(startDatum);
+            let running = startSaldo;
+            dbData.forEach(item => {
+                if (parseGermanDate(item.Datum) >= startTs) {
+                    running += parseFloat(item.Betrag) || 0;
+                }
+            });
+
+            document.getElementById('kpiBankSaldo').innerHTML = formatCurrency(running);
+            document.getElementById('kpiBankSub').innerText = `Startsaldo ${formatCurrency(startSaldo).replace('&euro;', '€')} ab ${startDatum}`;
+
+            // =========================================================
+            // DIE ECHTEN QM SIND HIER HINTERLEGT
+            // =========================================================
+            let props = {
+                "bruehlweg": { kalt: 1360, stell: 70, nk: 400, hausgeld: 0, qm: 124.29 }, 
+                "801": { kalt: 683, stell: 26.45, nk: 265, hausgeld: 0, qm: 81.6 },     
+                "901": { kalt: 775, stell: 25, nk: 300, hausgeld: 0, qm: 81.6 }         
+            };
+            // =========================================================
+
+            const reversedData = [...dbData].reverse();
+            let foundBruehlM = false, found801M = false, found901M = false;
+            let foundBruehlHg = false, found801Hg = false, found901Hg = false;
+
+            for (const tx of reversedData) {
+                const objUpper = (tx.Objekt || "").toUpperCase();
+                const txtUpper = (tx.Buchungstext || "").toUpperCase();
+                const uKatUpper = (tx.Unterkat || "").toUpperCase();
+                
+                const isBruehl = objUpper.includes("BRUEHLWEG") || objUpper.includes("BRÜHLWEG") || txtUpper.includes("BRUEHLWEG") || txtUpper.includes("BRÜHLWEG");
+                const is801 = objUpper.includes("801") || txtUpper.includes("801");
+                const is901 = objUpper.includes("901") || txtUpper.includes("901");
+
+                if (tx.Hauptkat === "Mieteinnahmen" && tx.IsSplit && tx.SplitDetails) {
+                    if (isBruehl && !foundBruehlM) {
+                        props["bruehlweg"].kalt = parseFloat(tx.SplitDetails.Kaltmiete) || 0;
+                        props["bruehlweg"].stell = parseFloat(tx.SplitDetails.Stellplatz) || 0;
+                        props["bruehlweg"].nk = parseFloat(tx.SplitDetails.Nebenkosten) || 0;
+                        foundBruehlM = true;
+                    }
+                    if (is801 && !found801M) {
+                        props["801"].kalt = parseFloat(tx.SplitDetails.Kaltmiete) || 0;
+                        props["801"].stell = parseFloat(tx.SplitDetails.Stellplatz) || 0;
+                        props["801"].nk = parseFloat(tx.SplitDetails.Nebenkosten) || 0;
+                        found801M = true;
+                    }
+                    if (is901 && !found901M) {
+                        props["901"].kalt = parseFloat(tx.SplitDetails.Kaltmiete) || 0;
+                        props["901"].stell = parseFloat(tx.SplitDetails.Stellplatz) || 0;
+                        props["901"].nk = parseFloat(tx.SplitDetails.Nebenkosten) || 0;
+                        found901M = true;
+                    }
+                }
+                
+                if (tx.Betrag < 0 && (uKatUpper.includes("HAUSGELD") || txtUpper.includes("HAUSGELD"))) {
+                    if (!txtUpper.includes("SPITZE") && !txtUpper.includes("ERGEBNIS") && !txtUpper.includes("NACHZAHLUNG")) {
+                        if (isBruehl && !foundBruehlHg) { props["bruehlweg"].hausgeld = Math.abs(parseFloat(tx.Betrag)); foundBruehlHg = true; }
+                        if (is801 && !found801Hg) { props["801"].hausgeld = Math.abs(parseFloat(tx.Betrag)); found801Hg = true; }
+                        if (is901 && !found901Hg) { props["901"].hausgeld = Math.abs(parseFloat(tx.Betrag)); found901Hg = true; }
+                    }
+                }
+
+                if (foundBruehlM && found801M && found901M && foundBruehlHg && found801Hg && found901Hg) break;
+            }
+
+            let history = { "bruehlweg": [], "801": [], "901": [] };
+
+            dbData.forEach(tx => {
+                const objUpper = (tx.Objekt || "").toUpperCase();
+                const txtUpper = (tx.Buchungstext || "").toUpperCase();
+                const uKatUpper = (tx.Unterkat || "").toUpperCase();
+                let propKey = null;
+
+                if (objUpper.includes("BRUEHLWEG") || objUpper.includes("BRÜHLWEG") || txtUpper.includes("BRUEHLWEG") || txtUpper.includes("BRÜHLWEG")) propKey = "bruehlweg";
+                else if (objUpper.includes("801") || txtUpper.includes("801")) propKey = "801";
+                else if (objUpper.includes("901") || txtUpper.includes("901")) propKey = "901";
+
+                if (propKey) {
+                    if (tx.Hauptkat === "Mieteinnahmen" && tx.Betrag > 0 && tx.IsSplit && tx.SplitDetails) {
+                        history[propKey].push({
+                            date: tx.Datum,
+                            type: 'rent',
+                            kalt: parseFloat(tx.SplitDetails.Kaltmiete) || 0,
+                            nk: parseFloat(tx.SplitDetails.Nebenkosten) || 0
+                        });
+                    }
+                    if (tx.Betrag < 0 && (uKatUpper.includes("HAUSGELD") || txtUpper.includes("HAUSGELD"))) {
+                        if (!txtUpper.includes("SPITZE") && !txtUpper.includes("ERGEBNIS") && !txtUpper.includes("NACHZAHLUNG")) {
+                            history[propKey].push({
+                                date: tx.Datum,
+                                type: 'hausgeld',
+                                hausgeld: Math.abs(parseFloat(tx.Betrag)) || 0
+                            });
+                        }
+                    }
+                }
+            });
+
+            function findLatestChanges(histArray) {
+                let lastIncreaseDateKalt = null;
+                let lastChangeDateNk = null;
+                let lastChangeDateHg = null;
+                
+                let lastKalt = -1;
+                let lastNk = -1;
+                let lastHg = -1;
+                
+                histArray.forEach(item => {
+                    if (item.type === 'rent') {
+                        if (lastKalt !== -1 && item.kalt > lastKalt + 0.5) { lastIncreaseDateKalt = item.date; }
+                        if (item.kalt > 0) { lastKalt = item.kalt; }
+                        
+                        if (lastNk !== -1 && Math.abs(item.nk - lastNk) > 0.5 && item.nk > 0) { lastChangeDateNk = item.date; }
+                        if (item.nk > 0) { lastNk = item.nk; }
+                    } else if (item.type === 'hausgeld') {
+                        if (lastHg !== -1 && Math.abs(item.hausgeld - lastHg) > 0.5 && item.hausgeld > 0) { lastChangeDateHg = item.date; }
+                        if (item.hausgeld > 0) { lastHg = item.hausgeld; }
+                    }
+                });
+                return { kaltDate: lastIncreaseDateKalt, nkDate: lastChangeDateNk, hgDate: lastChangeDateHg };
+            }
+
+            const changesBruehl = findLatestChanges(history["bruehlweg"]);
+            const changes801 = findLatestChanges(history["801"]);
+            const changes901 = findLatestChanges(history["901"]);
+
+            function updateIncreaseUI(id, changes) {
+                const el = document.getElementById(id);
+                let msgs = [];
+                if (changes.kaltDate) msgs.push(`📈 <strong>Mieterhöhung</strong> (Kaltmiete) wirksam seit: <strong>${changes.kaltDate}</strong>`);
+                if (changes.nkDate) msgs.push(`💧 <strong>Nebenkosten</strong> angepasst seit: <strong>${changes.nkDate}</strong>`);
+                if (changes.hgDate) msgs.push(`🏢 <strong>Hausgeld</strong> angepasst seit: <strong>${changes.hgDate}</strong>`);
+                
+                if (msgs.length > 0) {
+                    el.style.display = 'block';
+                    el.innerHTML = msgs.join('<br>');
+                } else {
+                    el.style.display = 'none';
+                }
+            }
+
+            updateIncreaseUI('bruehlIncrease', changesBruehl);
+            updateIncreaseUI('mls801Increase', changes801);
+            updateIncreaseUI('mls901Increase', changes901);
+
+            const sumKaltStell = (props["bruehlweg"].kalt + props["bruehlweg"].stell) + (props["801"].kalt + props["801"].stell) + (props["901"].kalt + props["901"].stell);
+            const sumNk = props["bruehlweg"].nk + props["801"].nk + props["901"].nk;
+            const sumGesamt = sumKaltStell + sumNk;
+
+            document.getElementById("kpiKaltStellplatz").innerHTML = formatCurrency(sumKaltStell);
+            document.getElementById("kpiNebenkosten").innerHTML = formatCurrency(sumNk);
+            document.getElementById("kpiGesamtmiete").innerHTML = formatCurrency(sumGesamt);
+
+            // Brühlweg UI Update
+            document.getElementById("bruehlQm").innerHTML = props["bruehlweg"].qm.toLocaleString('de-DE') + " m&sup2;";
+            document.getElementById("bruehlQmMiete").innerHTML = formatCurrency(props["bruehlweg"].kalt / props["bruehlweg"].qm) + " / m&sup2;";
+            document.getElementById("bruehlKalt").innerHTML = formatCurrency(props["bruehlweg"].kalt);
+            document.getElementById("bruehlStell").innerHTML = formatCurrency(props["bruehlweg"].stell);
+            document.getElementById("bruehlNK").innerHTML = formatCurrency(props["bruehlweg"].nk);
+            document.getElementById("bruehlHausgeld").innerHTML = formatCurrency(props["bruehlweg"].hausgeld);
+            document.getElementById("bruehlWarm").innerHTML = formatCurrency(props["bruehlweg"].kalt + props["bruehlweg"].stell + props["bruehlweg"].nk);
+
+            // 801 UI Update
+            document.getElementById("mls801Qm").innerHTML = props["801"].qm.toLocaleString('de-DE') + " m&sup2;";
+            document.getElementById("mls801QmMiete").innerHTML = formatCurrency(props["801"].kalt / props["801"].qm) + " / m&sup2;";
+            document.getElementById("mls801Kalt").innerHTML = formatCurrency(props["801"].kalt);
+            document.getElementById("mls801Stell").innerHTML = formatCurrency(props["801"].stell);
+            document.getElementById("mls801NK").innerHTML = formatCurrency(props["801"].nk);
+            document.getElementById("mls801Hausgeld").innerHTML = formatCurrency(props["801"].hausgeld);
+            document.getElementById("mls801Warm").innerHTML = formatCurrency(props["801"].kalt + props["801"].stell + props["801"].nk);
+
+            // 901 UI Update
+            document.getElementById("mls901Qm").innerHTML = props["901"].qm.toLocaleString('de-DE') + " m&sup2;";
+            document.getElementById("mls901QmMiete").innerHTML = formatCurrency(props["901"].kalt / props["901"].qm) + " / m&sup2;";
+            document.getElementById("mls901Kalt").innerHTML = formatCurrency(props["901"].kalt);
+            document.getElementById("mls901Stell").innerHTML = formatCurrency(props["901"].stell);
+            document.getElementById("mls901NK").innerHTML = formatCurrency(props["901"].nk);
+            document.getElementById("mls901Hausgeld").innerHTML = formatCurrency(props["901"].hausgeld);
+            document.getElementById("mls901Warm").innerHTML = formatCurrency(props["901"].kalt + props["901"].stell + props["901"].nk);
+
+            const tbody = document.getElementById('journalTbody');
+            tbody.innerHTML = '';
+            
+            const recent = [...dbData].reverse().slice(0, 6);
+            recent.forEach(tx => {
+                const tr = document.createElement('tr');
+                const isPos = tx.Betrag >= 0;
+                tr.innerHTML = `
+                    <td>${tx.Datum}</td>
+                    <td style="font-weight: 600;">${tx.Objekt || '-'}</td>
+                    <td style="color: #475569;">${tx.Buchungstext || '-'}</td>
+                    <td><span style="background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-weight: 600;">${tx.Hauptkat || '-'}</span></td>
+                    <td class="${isPos ? 'num-pos' : 'num-neg'}">${(isPos ? '+' : '') + formatCurrency(tx.Betrag)}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            document.getElementById('journalCount').innerText = `${dbData.length} Buchungen in der Datenbank hinterlegt`;
+        }
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const parsed = JSON.parse(e.target.result);
+                    processDatabase(parsed);
+                } catch (err) {
+                    alert('Fehler beim Einlesen der JSON-Datei: ' + err.message);
+                }
+            };
+            reader.readAsText(file, 'UTF-8');
+        }
+
+        async function loadDatabase() {
+            const userPath = appConfig.dbPath;
+            const candidates = [
+                userPath,
+                `./${userPath}`,
+                `http://localhost:8080/${userPath}`,
+                `http://localhost:8085/${userPath}`
+            ];
+
+            let loaded = false;
+            for (const url of candidates) {
+                try {
+                    const res = await fetch(url);
+                    if (res.ok) {
+                        const data = await res.json();
+                        processDatabase(data);
+                        loaded = true;
+                        break;
+                    }
+                } catch (e) {}
+            }
+
+            if (!loaded) {
+                document.getElementById('journalTbody').innerHTML = `<tr><td colspan="5" style="color: var(--danger); font-style: italic; text-align: center; padding: 14px;">Konnte '${userPath}' nicht laden. Bitte über den Button oben laden oder Pfad in den ⚙️ Pfaden prüfen.</td></tr>`;
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            applyConfigToLinks();
+            loadDatabase();
+        });
+    </script>
+</body>
+</html>

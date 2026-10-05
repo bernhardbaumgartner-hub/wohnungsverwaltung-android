@@ -1,0 +1,1408 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nebenkostenabrechnung - Automatische Hausgeld-Übernahme</title>
+    <style>
+        :root {
+            --primary: #1e3a8a;
+            --primary-dark: #0f172a;
+            --primary-light: #eff6ff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border-color: #cbd5e1;
+            --border-subtle: #e2e8f0;
+            --danger: #b91c1c;
+            --danger-bg: #fef2f2;
+            --success: #15803d;
+            --success-bg: #f0fdf4;
+            --warning: #d97706;
+            --font-stack: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: var(--font-stack);
+            background-color: #e2e8f0;
+            color: var(--text-main);
+            line-height: 1.4;
+            padding: 24px 12px;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        .toolbar {
+            max-width: 210mm;
+            margin: 0 auto 16px auto;
+            background: #ffffff;
+            padding: 14px 18px;
+            border-radius: 8px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .toolbar-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .controls-group {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .control-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .control-item label {
+            font-size: 11.5px;
+            font-weight: 700;
+            color: var(--primary);
+            white-space: nowrap;
+        }
+
+        .form-control {
+            padding: 5px 8px;
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-main);
+            background-color: #ffffff;
+            outline: none;
+        }
+
+        .form-control:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(30, 58, 138, 0.15);
+        }
+
+        .date-input { width: 88px; text-align: center; }
+        .num-input-sm { width: 55px; text-align: center; }
+        .num-input-md { width: 80px; text-align: right; }
+        .text-input-lg { width: 210px; }
+        .text-input-md { width: 140px; }
+        .text-input-sm { width: 110px; }
+
+        .btn {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 7px 15px;
+            font-size: 12.5px;
+            font-weight: 600;
+            border-radius: 6px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s ease;
+        }
+
+        .btn:hover { background-color: #1d4ed8; }
+        .btn-purple { background-color: #7c3aed; }
+        .btn-purple:hover { background-color: #6d28d9; }
+        .btn-green { background-color: #16a34a; }
+        .btn-green:hover { background-color: #15803d; }
+
+        .btn-secondary {
+            background-color: #f1f5f9;
+            color: var(--primary);
+            border: 1px solid var(--border-color);
+            padding: 4px 10px;
+            font-size: 11.5px;
+        }
+        .btn-secondary:hover { background-color: #e2e8f0; }
+
+        .btn-del {
+            background: none;
+            border: none;
+            color: #ef4444;
+            font-size: 14px;
+            cursor: pointer;
+            padding: 2px 5px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .btn-del:hover { background-color: #fee2e2; }
+
+        .status-badge-group {
+            display: flex;
+            gap: 12px;
+            font-size: 11.5px;
+            font-weight: 600;
+        }
+
+        .prepayment-manager {
+            background-color: #fafbfc;
+            border: 1px solid var(--border-subtle);
+            border-radius: 6px;
+            padding: 8px 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            width: 100%;
+        }
+
+        .prepayment-manager-title {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--primary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .prepayment-row-editor {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .page {
+            width: 210mm;
+            min-height: 297mm;
+            margin: 0 auto;
+            background: #ffffff;
+            padding: 16mm 20mm;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+            border-radius: 4px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .document-body { width: 100%; }
+        .num, .amount, .balance-total-amount { font-variant-numeric: tabular-nums; letter-spacing: -0.2px; }
+
+        /* DEUTLICH GESTRAFFTE ABSTÄNDE FÜR MEHR PLATZ */
+        .header-grid {
+            width: 100%;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 12px;
+        }
+
+        .sender-box {
+            font-size: 12px;
+            color: var(--text-muted);
+            border-left: 3px solid var(--primary);
+            padding: 2px 0 2px 10px;
+        }
+
+        .sender-box strong {
+            color: var(--text-main);
+            font-size: 13.5px;
+            display: block;
+            margin-bottom: 1px;
+        }
+
+        .recipient-box {
+            background-color: var(--primary-light);
+            border: 1px solid var(--border-subtle);
+            border-radius: 6px;
+            padding: 8px 12px;
+        }
+
+        .recipient-label {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            color: var(--text-muted);
+            font-weight: 700;
+            margin-bottom: 2px;
+        }
+
+        .recipient-name {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .doc-title-row {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            border-bottom: 2px solid var(--primary);
+            padding-bottom: 4px;
+            margin-bottom: 8px;
+        }
+
+        .doc-title {
+            font-size: 18px;
+            font-weight: 800;
+            color: var(--primary);
+            letter-spacing: -0.3px;
+        }
+
+        .doc-date { font-size: 11px; color: var(--text-muted); }
+
+        .meta-info-grid {
+            width: 100%;
+            display: grid;
+            grid-template-columns: 1.2fr 1fr 1fr;
+            background-color: #fafbfc;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 6px 12px;
+            margin-bottom: 12px;
+            font-size: 11.5px;
+        }
+
+        .meta-item span {
+            display: block;
+            color: var(--text-muted);
+            font-size: 9.5px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+
+        .meta-item strong { color: var(--text-main); font-weight: 600; }
+
+        /* TABELLE DEUTLICH GESTRAFFT FÜR VIELE POSITIONEN */
+        table.cost-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            font-size: 11px;
+            margin-bottom: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        table.cost-table th {
+            background-color: #f1f5f9;
+            color: #334155;
+            font-weight: 700;
+            padding: 5px 8px;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        table.cost-table th:not(:last-child), table.cost-table td:not(:last-child) { border-right: 1px solid var(--border-subtle); }
+        table.cost-table th.num-col, table.cost-table td.num-col { text-align: right; padding-right: 8px; }
+        
+        /* HIER WIRD DER MEISTE PLATZ GESPART: */
+        table.cost-table td { padding: 3px 8px; border-bottom: 1px solid var(--border-subtle); vertical-align: middle; color: var(--text-main); }
+        
+        table.cost-table tbody tr:last-child td { border-bottom: none; }
+        table.cost-table tbody tr:nth-child(even) { background-color: #fbfcfd; }
+        .empty-val { color: #cbd5e1; font-weight: normal; }
+
+        .summary-wrapper {
+            width: 100%;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 10px;
+        }
+
+        .prepayments-box {
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 8px 12px;
+            background-color: #ffffff;
+            font-size: 11px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .prepayments-title {
+            font-weight: 700;
+            font-size: 11px;
+            color: var(--primary);
+            margin-bottom: 4px;
+            border-bottom: 1px solid var(--border-subtle);
+            padding-bottom: 2px;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .prepayment-row { display: flex; justify-content: space-between; padding: 2px 0; }
+
+        .balance-box {
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 8px 12px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            background-color: #ffffff;
+        }
+
+        .balance-box.nachzahlung { background-color: var(--danger-bg); border: 1px solid #fca5a5; }
+        .balance-box.guthaben { background-color: var(--success-bg); border: 1px solid #86efac; }
+        .balance-row { display: flex; justify-content: space-between; font-size: 11.5px; margin-bottom: 3px; color: var(--text-main); }
+        .balance-total-row { display: flex; justify-content: space-between; align-items: baseline; border-top: 1px solid rgba(0,0,0,0.12); padding-top: 4px; margin-top: 3px; }
+        .balance-total-label { font-size: 13px; font-weight: 800; }
+        .balance-total-amount { font-size: 17px; font-weight: 800; text-align: right; }
+        .nachzahlung .balance-total-amount, .nachzahlung .balance-total-label { color: var(--danger); }
+        .guthaben .balance-total-amount, .guthaben .balance-total-label { color: var(--success); }
+
+        .notes-box {
+            width: 100%;
+            font-size: 10.5px;
+            color: #334155;
+            background: #fafbfc;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 5px 10px;
+            margin-bottom: 10px;
+        }
+
+        .signature-row {
+            width: 100%;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 32px;
+            margin-top: 10px;
+            font-size: 11px;
+        }
+
+        .signature-line {
+            border-top: 1px solid #94a3b8;
+            padding-top: 4px;
+            color: var(--text-muted);
+            text-align: center;
+        }
+
+        @page { size: A4 portrait; margin: 0; }
+        @media print {
+            body { background: white !important; margin: 0 !important; padding: 0 !important; }
+            .toolbar { display: none !important; }
+            /* DRUCKRÄNDER REDUZIERT UM PLATZ FÜR VIELE ZEILEN ZU SCHAFFEN */
+            .page { box-shadow: none !important; border-radius: 0 !important; margin: 0 auto !important; padding: 10mm 15mm !important; width: 210mm !important; min-height: 297mm !important; page-break-after: avoid; page-break-inside: avoid; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="toolbar">
+        <div class="toolbar-row">
+            <div class="controls-group">
+                <div class="control-item">
+                    <label for="objectSelect">🏢 Wohnung &amp; Mieterkonstellation:</label>
+                    <select class="form-control" id="objectSelect" onchange="onObjectChange(this.value)" style="min-width: 320px;">
+                        <optgroup label="Brühlweg 4a, Merdingen (WE 1 EG)">
+                            <option value="bruehlweg_4a_palm" selected>Sophie Palm / Alexander Jaensch (ab 01.03.2026 - 10 Mon.)</option>
+                            <option value="bruehlweg_4a_hoffmann">Fam. Hoffmann (bis 28.02.2026 - 2 Mon.)</option>
+                            <option value="bruehlweg_4a_full">Ganzjahresabrechnung (12 Monate)</option>
+                            <option value="bruehlweg_4a_custom">Neuer Mieterwechsel (Freie Eingabe)</option>
+                        </optgroup>
+                        <optgroup label="Martin-Luther-Str. 7, 801 (8. OG, Emmendingen)">
+                            <option value="mls_801_current">Natalia Müller (Aktuell / Ganzes Jahr)</option>
+                            <option value="mls_801_alt">Vormieter / Ausziehend (Unterjährig)</option>
+                            <option value="mls_801_neu">Nachmieter / Einziehend (Unterjährig)</option>
+                            <option value="mls_801_custom">Neuer Mieterwechsel (Freie Eingabe)</option>
+                        </optgroup>
+                        <optgroup label="Martin-Luther-Str. 7, 901 (9. OG, Emmendingen)">
+                            <option value="mls_901_rusev">Martin Rusev (ab 01.09.2025 / Aktuell)</option>
+                            <option value="mls_901_graetz">Anita Grätz (bis 31.08.2025 - 8 Mon.)</option>
+                            <option value="mls_901_current">Ganzjahresabrechnung (12 Monate)</option>
+                            <option value="mls_901_custom">Neuer Mieterwechsel (Freie Eingabe)</option>
+                        </optgroup>
+                    </select>
+                </div>
+
+                <div class="control-item">
+                    <label for="inputMieterName">👤 Mieter:</label>
+                    <input type="text" class="form-control text-input-lg" id="inputMieterName" value="Sophie Palm / Alexander Jaensch" oninput="updateMieterData()">
+                </div>
+
+                <div class="control-item">
+                    <label for="inputMieterAdresse">Straße:</label>
+                    <input type="text" class="form-control text-input-md" id="inputMieterAdresse" value="Brühlweg 4a" oninput="updateMieterData()">
+                </div>
+
+                <div class="control-item">
+                    <label for="inputMieterOrt">PLZ/Ort:</label>
+                    <input type="text" class="form-control text-input-md" id="inputMieterOrt" value="79291 Merdingen" oninput="updateMieterData()">
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 8px; align-items: center;">
+                <input type="file" id="hausgeldFileInput" accept=".json,.csv,.txt" style="display: none;" onchange="handleHausgeldFileSelect(event)">
+                <button class="btn btn-purple" onclick="document.getElementById('hausgeldFileInput').click()" title="Hausgeld_Datenbank.json oder CSV laden">📑 Hausgeld laden (JSON/CSV)</button>
+
+                <input type="file" id="dbFileInput" accept=".json" style="display: none;" onchange="handleBankFileSelect(event)">
+                <button class="btn btn-green" onclick="document.getElementById('dbFileInput').click()" title="datenbank.json der Bank einlesen">📂 datenbank.json laden</button>
+				<button class="btn btn-secondary" onclick="window.location.href='/'">🏠 Dashboard</button>
+                <button class="btn" onclick="window.print()">🖨️ Drucken / PDF</button>
+            </div>
+        </div>
+
+        <div class="toolbar-row" style="border-top: 1px dashed var(--border-subtle); padding-top: 8px;">
+            <div class="controls-group">
+                <div class="control-item">
+                    <label for="yearQuickSelect">📅 Jahr:</label>
+                    <select class="form-control" id="yearQuickSelect" onchange="onYearQuickSelect(this.value)">
+                        <option value="2026" selected>2026</option>
+                        <option value="2025">2025</option>
+                        <option value="2024">2024</option>
+                        <option value="custom">Benutzerdefiniert</option>
+                    </select>
+                </div>
+
+                <div class="control-item">
+                    <label for="inputDateFrom">Abrechnung Von:</label>
+                    <input type="text" class="form-control date-input" id="inputDateFrom" value="01.03.2026" oninput="updateCustomPeriod()">
+                    <label for="inputDateTo">Bis:</label>
+                    <input type="text" class="form-control date-input" id="inputDateTo" value="31.12.2026" oninput="updateCustomPeriod()">
+                </div>
+
+                <div class="control-item">
+                    <label for="inputEinzug">🔑 Einzug:</label>
+                    <input type="text" class="form-control date-input" id="inputEinzug" value="01.03.2026" oninput="updateMietzeitraum()">
+                    <label for="inputAuszug">Auszug:</label>
+                    <input type="text" class="form-control date-input" id="inputAuszug" value="------" oninput="updateMietzeitraum()">
+                </div>
+
+                <div class="control-item" style="margin-left: 8px;">
+                    <label><input type="checkbox" id="chkAutoProrate" checked onchange="calculateFromDatabase()"> ⚖️ Zeitanteil bei Mieterwechsel automatisch anwenden</label>
+                </div>
+            </div>
+
+            <div class="status-badge-group">
+                <span id="hausgeldStatusBadge" style="color: #64748b;">○ Kein Hausgeld geladen</span>
+                <span id="dbStatusBadge" style="color: #64748b;">○ datenbank.json: Bereit</span>
+            </div>
+        </div>
+
+        <div class="prepayment-manager">
+            <div class="prepayment-manager-title">
+                <span>💶 Geleistete Vorauszahlungen (Nebenkosten) – Staffeln bearbeiten</span>
+                <button type="button" class="btn btn-secondary" onclick="addPrepaymentTier()">➕ Staffel hinzufügen</button>
+            </div>
+            <div id="prepaymentEditorList" style="display: flex; flex-direction: column; gap: 4px;"></div>
+        </div>
+    </div>
+
+    <div class="page" id="abrechnungPage">
+        <div class="document-body">
+            
+            <div class="header-grid">
+                <div class="sender-box">
+                    <span style="font-size: 10px; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Absender / Vermieter</span>
+                    <strong id="var_absender_name">Bernhard Baumgartner</strong>
+                    <div id="var_absender_adresse">Angelus-Silesius-Str. 12, 79114 Freiburg</div>
+                    <div id="var_absender_kontakt">E-Mail: bernhard.baumgartner@gmail.com</div>
+                </div>
+
+                <div class="recipient-box">
+                    <div class="recipient-label">Empfänger / Mieter</div>
+                    <div class="recipient-name" id="var_mieter_name">-</div>
+                    <div id="var_mieter_adresse">-</div>
+                    <div id="var_mieter_ort">-</div>
+                </div>
+            </div>
+
+            <div class="doc-title-row">
+                <div class="doc-title">Nebenkostenabrechnung</div>
+                <div class="doc-date">
+                    Erstellungsdatum: <strong id="var_erstellungsdatum" style="color: var(--text-main);">-</strong>
+                </div>
+            </div>
+
+            <div class="meta-info-grid">
+                <div class="meta-item">
+                    <span>Objekt / Liegenschaft</span>
+                    <strong id="var_objekt_adresse">-</strong>
+                </div>
+                <div class="meta-item">
+                    <span>Abrechnungszeitraum</span>
+                    <strong id="var_zeitraum">-</strong>
+                </div>
+                <div class="meta-item">
+                    <span>Einheit / Mietzeitraum</span>
+                    <strong id="var_mietzeitraum">-</strong>
+                </div>
+            </div>
+
+            <table class="cost-table">
+                <thead>
+                    <tr>
+                        <th style="width: 32px; text-align: center;">Nr.</th>
+                        <th style="width: 230px;">Kostenart / Position</th>
+                        <th class="num-col" style="width: 95px;">Gesamt (€)</th>
+                        <th style="width: 60px; text-align: center;">Monate</th>
+                        <th style="width: 145px;">Verteilerschlüssel</th>
+                        <th style="width: 65px; text-align: center;">Anteil</th>
+                        <th class="num-col" style="width: 105px;">Ihr Anteil (€)</th>
+                    </tr>
+                </thead>
+                <tbody id="costTableBody"></tbody>
+            </table>
+
+            <div class="summary-wrapper">
+                <div class="prepayments-box">
+                    <div>
+                        <div class="prepayments-title">Geleistete Vorauszahlungen (Nebenkosten)</div>
+                        <div id="prepaymentsList"></div>
+                    </div>
+                    <div style="margin-top: 6px; padding-top: 4px; border-top: 1px dashed var(--border-subtle); font-size: 10.5px; color: var(--text-muted);">
+                        Miete (ohne Nebenkosten): <strong id="var_kaltmiete" class="num" style="color: var(--text-main);">- €</strong> mtl.
+                    </div>
+                </div>
+
+                <div class="balance-box nachzahlung" id="balanceBox">
+                    <div>
+                        <div class="balance-row">
+                            <span>Gesamte Betriebskosten:</span>
+                            <strong id="var_summe_kosten" class="num">0,00 €</strong>
+                        </div>
+                        <div class="balance-row">
+                            <span>abzgl. Vorauszahlungen:</span>
+                            <strong id="var_summe_vorauszahlungen" class="num">0,00 €</strong>
+                        </div>
+                    </div>
+                    <div class="balance-total-row">
+                        <span class="balance-total-label" id="balanceLabel">Nachzahlung (Mieter):</span>
+                        <span class="balance-total-amount num" id="var_saldo_betrag">0,00 €</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="notes-box">
+                <strong style="display:inline-block; margin-right: 4px;">Zahlungshinweis:</strong>
+                <span id="var_bemerkung">-</span>
+            </div>
+
+        </div>
+
+        <div class="signature-row">
+            <div class="signature-line">
+                <span id="var_unterschrift_ort_datum">Freiburg, den -</span>
+            </div>
+            <div class="signature-line">
+                Unterschrift Vermieter
+            </div>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT LOGIK -->
+    <script>
+        let loadedBankDatabase = null;
+        let loadedHausgeldDatabase = null;
+
+        let currentObjectKey = "bruehlweg_4a_palm";
+        let currentDateFrom = "01.03.2026";
+        let currentDateTo = "31.12.2026";
+        let currentEinzug = "01.03.2026";
+        let currentAuszug = "------";
+        let currentMieterName = "Sophie Palm / Alexander Jaensch";
+        let currentMieterAdresse = "Brühlweg 4a";
+        let currentMieterOrt = "79291 Merdingen";
+        let currentPrepaymentTiers = [];
+
+        const propertiesData = {
+            "bruehlweg_4a_palm": {
+                matchPattern: "BRUEHLWEG|BRÜHLWEG|WE 1|MERDINGEN|9 / 100|9/100|PALM|SOPHIE|JAENSCH|J.*NSCH|ALEXANDER",
+                empfaenger: { name: "Sophie Palm / Alexander Jaensch", adresse: "Brühlweg 4a", ort: "79291 Merdingen" },
+                objekt: { adresse: "Brühlweg 4a, 79291 Merdingen", einzug: "01.03.2026", auszug: "------", mieteDefault: "1.430,00", dateFrom: "01.03.2026", dateTo: "31.12.2026" },
+                defaultPositions: [
+                    { name: "Heizung und Wasser", gesamt: null, monate: null, key: "Minol-Abrechnung", share: "WE 1 EG", amount: null, hgMatch: "HEIZUNG|WARMWASSER|MINOL" },
+                    { name: "Öffentliche Lasten (Grundsteuer)", gesamt: null, monate: null, key: "273,0000 / 1000 MEA", share: "", amount: null, hgMatch: "GRUNDSTEUER", dbMatch: "GRUNDSTEUER" },
+                    { name: "Niederschlagswasser", gesamt: null, monate: null, key: "273,0000 / 1000 MEA", share: "", amount: null, hgMatch: "NIEDERSCHLAGSWASSER" },
+                    { name: "Sach- und Gebäudeversicherung", gesamt: null, monate: null, key: "273,0000 / 1000 MEA", share: "", amount: null, hgMatch: "VERSICHERUNG" },
+                    { name: "Wartung Feuerlöscher", gesamt: null, monate: null, key: "273,0000 / 1000 MEA", share: "", amount: null, hgMatch: "FEUERLÖSCHER|FEUERLOESCHER|LÖSCHER|BRANDSCHUTZ" },
+                    { name: "Trinkwasseranalyse", gesamt: null, monate: null, key: "273,0000 / 1000 MEA", share: "", amount: null, hgMatch: "TRINKWASSER|LEGIONELLEN" },
+                    { name: "Schornsteinreinigung", gesamt: null, monate: null, key: "direkt", share: "", amount: null, hgMatch: "SCHORNSTEIN", dbMatch: "SCHORNSTEIN" }
+                ],
+                defaultVorauszahlung: [
+                    { months: 10, rate: 310.00, label: "Mär – Dez" }
+                ]
+            },
+
+            "bruehlweg_4a_hoffmann": {
+                matchPattern: "BRUEHLWEG|BRÜHLWEG|WE 1|MERDINGEN|9 / 100|9/100|HOFFMANN",
+                empfaenger: { name: "Fam. Hoffmann", adresse: "Brühlweg 4a", ort: "79291 Merdingen" },
+                objekt: { adresse: "Brühlweg 4a, 79291 Merdingen", einzug: "01.07.2022", auszug: "28.02.2026", mieteDefault: "1.430,00", dateFrom: "01.01.2026", dateTo: "28.02.2026" },
+                defaultPositions: [
+                    { name: "Heizung und Wasser", gesamt: null, monate: null, key: "Minol-Abrechnung", share: "WE 1 EG", amount: null, hgMatch: "HEIZUNG|WARMWASSER|MINOL" },
+                    { name: "Öffentliche Lasten (Grundsteuer)", gesamt: null, monate: null, key: "273,0000 / 1000 MEA", share: "", amount: null, hgMatch: "GRUNDSTEUER", dbMatch: "GRUNDSTEUER" },
+                    { name: "Niederschlagswasser", gesamt: null, monate: null, key: "273,0000 / 1000 MEA", share: "", amount: null, hgMatch: "NIEDERSCHLAGSWASSER" },
+                    { name: "Sach- und Gebäudeversicherung", gesamt: null, monate: null, key: "273,0000 / 1000 MEA", share: "", amount: null, hgMatch: "VERSICHERUNG" },
+                    { name: "Wartung Feuerlöscher", gesamt: null, monate: null, key: "273,0000 / 1000 MEA", share: "", amount: null, hgMatch: "FEUERLÖSCHER|FEUERLOESCHER|LÖSCHER|BRANDSCHUTZ" },
+                    { name: "Trinkwasseranalyse", gesamt: null, monate: null, key: "273,0000 / 1000 MEA", share: "", amount: null, hgMatch: "TRINKWASSER|LEGIONELLEN" },
+                    { name: "Schornsteinreinigung", gesamt: null, monate: null, key: "direkt", share: "", amount: null, hgMatch: "SCHORNSTEIN", dbMatch: "SCHORNSTEIN" }
+                ],
+                defaultVorauszahlung: [
+                    { months: 2, rate: 310.00, label: "Jan – Feb" }
+                ]
+            },
+
+            "bruehlweg_4a_full": {
+                matchPattern: "BRUEHLWEG|BRÜHLWEG|WE 1|MERDINGEN|9 / 100|9/100|PALM|HOFFMANN",
+                empfaenger: { name: "Mieter Brühlweg 4a", adresse: "Brühlweg 4a", ort: "79291 Merdingen" },
+                objekt: { adresse: "Brühlweg 4a, 79291 Merdingen", einzug: "01.01.2025", auszug: "------", mieteDefault: "1.430,00", dateFrom: "01.01.2025", dateTo: "31.12.2025" },
+                defaultPositions: [
+                    { name: "Heizung und Wasser", gesamt: null, monate: null, key: "Minol-Abrechnung", share: "WE 1 EG", amount: null, hgMatch: "HEIZUNG|WARMWASSER|MINOL" },
+                    { name: "Öffentliche Lasten (Grundsteuer)", gesamt: null, monate: null, key: "273,0000 / 1000 MEA", share: "", amount: null, hgMatch: "GRUNDSTEUER", dbMatch: "GRUNDSTEUER" },
+                    { name: "Niederschlagswasser", gesamt: null, monate: null, key: "273,0000 / 1000 MEA", share: "", amount: null, hgMatch: "NIEDERSCHLAGSWASSER" },
+                    { name: "Sach- und Gebäudeversicherung", gesamt: null, monate: null, key: "273,0000 / 1000 MEA", share: "", amount: null, hgMatch: "VERSICHERUNG" },
+                    { name: "Wartung Feuerlöscher", gesamt: null, monate: null, key: "273,0000 / 1000 MEA", share: "", amount: null, hgMatch: "FEUERLÖSCHER|FEUERLOESCHER|LÖSCHER|BRANDSCHUTZ" },
+                    { name: "Trinkwasseranalyse", gesamt: null, monate: null, key: "273,0000 / 1000 MEA", share: "", amount: null, hgMatch: "TRINKWASSER|LEGIONELLEN" },
+                    { name: "Schornsteinreinigung", gesamt: null, monate: null, key: "direkt", share: "", amount: null, hgMatch: "SCHORNSTEIN", dbMatch: "SCHORNSTEIN" }
+                ],
+                defaultVorauszahlung: [
+                    { months: 12, rate: 310.00, label: "Ganzes Jahr" }
+                ]
+            },
+
+            "bruehlweg_4a_custom": {
+                matchPattern: "BRUEHLWEG|BRÜHLWEG|WE 1|MERDINGEN",
+                empfaenger: { name: "Neuer Mieter", adresse: "Brühlweg 4a", ort: "79291 Merdingen" },
+                objekt: { adresse: "Brühlweg 4a, 79291 Merdingen", einzug: "01.01.2026", auszug: "------", mieteDefault: "1.430,00", dateFrom: "01.01.2026", dateTo: "31.12.2026" },
+                defaultPositions: [
+                    { name: "Heizung und Wasser", gesamt: null, monate: null, key: "Minol-Abrechnung", share: "WE 1 EG", amount: null, hgMatch: "HEIZUNG|WARMWASSER|MINOL" },
+                    { name: "Öffentliche Lasten (Grundsteuer)", gesamt: null, monate: null, key: "273,0000 / 1000 MEA", share: "", amount: null, hgMatch: "GRUNDSTEUER", dbMatch: "GRUNDSTEUER" },
+                    { name: "Niederschlagswasser", gesamt: null, monate: null, key: "273,0000 / 1000 MEA", share: "", amount: null, hgMatch: "NIEDERSCHLAGSWASSER" },
+                    { name: "Sach- und Gebäudeversicherung", gesamt: null, monate: null, key: "273,0000 / 1000 MEA", share: "", amount: null, hgMatch: "VERSICHERUNG" },
+                    { name: "Wartung Feuerlöscher", gesamt: null, monate: null, key: "273,0000 / 1000 MEA", share: "", amount: null, hgMatch: "FEUERLÖSCHER|FEUERLOESCHER|LÖSCHER|BRANDSCHUTZ" },
+                    { name: "Trinkwasseranalyse", gesamt: null, monate: null, key: "273,0000 / 1000 MEA", share: "", amount: null, hgMatch: "TRINKWASSER|LEGIONELLEN" },
+                    { name: "Schornsteinreinigung", gesamt: null, monate: null, key: "direkt", share: "", amount: null, hgMatch: "SCHORNSTEIN", dbMatch: "SCHORNSTEIN" }
+                ],
+                defaultVorauszahlung: [
+                    { months: 6, rate: 310.00, label: "Staffel" }
+                ]
+            },
+
+            "mls_801_current": {
+                matchPattern: "801|MARTIN-LUTHER.*801|WE 801|21\\.103003|WO\\.NR\\.?\\s*801|MUELLER|M.*LLER|NATALIA",
+                empfaenger: { name: "Natalia Müller", adresse: "Martin-Luther-Str. 7, Whg. 801", ort: "79312 Emmendingen" },
+                objekt: { adresse: "Martin-Luther-Str. 7, Whg. 801, 79312 Emmendingen", einzug: "01.01.2021", auszug: "------", mieteDefault: "709,45", dateFrom: "01.01.2026", dateTo: "31.12.2026" },
+                defaultPositions: [
+                    { name: "Heizkosten", gesamt: null, monate: null, key: "laut Abrechnung", share: "Whg. 801", amount: null, hgMatch: "HEIZKOSTEN" },
+                    { name: "Öffentliche Lasten (Grundsteuer)", gesamt: null, monate: null, key: "Split 801/901", share: "Whg. 801", amount: null, hgMatch: "GRUNDSTEUER", dbMatch: "GRUNDSTEUER" },
+                    { name: "Wasser & Abwasser", gesamt: null, monate: null, key: "laut Abrechnung", share: "Whg. 801", amount: null, hgMatch: "WASSER/ABW" },
+                    { name: "Hausmeister & Außenanlage", gesamt: null, monate: null, key: "13,870 / 1000 MEA", share: "801", amount: null, hgMatch: "HAUSMEISTER|AUSSENANLAGE" },
+                    { name: "Aufzug / Lift - Kosten", gesamt: null, monate: null, key: "13,870 / 1000 MEA", share: "801", amount: null, hgMatch: "LIFT" },
+                    { name: "Müllgebühren", gesamt: null, monate: null, key: "13,870 / 1000 MEA", share: "801", amount: null, hgMatch: "MÜLL" },
+                    { name: "Sach- und Gebäudeversicherungen", gesamt: null, monate: null, key: "13,870 / 1000 MEA", share: "801", amount: null, hgMatch: "VERS\\." }
+                ],
+                defaultVorauszahlung: [
+                    { months: 12, rate: 265.00, label: "aus Bankauszug" }
+                ]
+            },
+
+            "mls_801_alt": {
+                matchPattern: "801|MARTIN-LUTHER.*801|WE 801|21\\.103003",
+                empfaenger: { name: "Vormieter Whg. 801", adresse: "Martin-Luther-Str. 7, Whg. 801", ort: "79312 Emmendingen" },
+                objekt: { adresse: "Martin-Luther-Str. 7, Whg. 801, 79312 Emmendingen", einzug: "01.01.2021", auszug: "30.06.2026", mieteDefault: "709,45", dateFrom: "01.01.2026", dateTo: "30.06.2026" },
+                defaultPositions: [
+                    { name: "Heizkosten", gesamt: null, monate: null, key: "laut Abrechnung", share: "Whg. 801", amount: null, hgMatch: "HEIZKOSTEN" },
+                    { name: "Öffentliche Lasten (Grundsteuer)", gesamt: null, monate: null, key: "Split 801/901", share: "Whg. 801", amount: null, hgMatch: "GRUNDSTEUER", dbMatch: "GRUNDSTEUER" },
+                    { name: "Wasser & Abwasser", gesamt: null, monate: null, key: "laut Abrechnung", share: "Whg. 801", amount: null, hgMatch: "WASSER/ABW" },
+                    { name: "Hausmeister & Außenanlage", gesamt: null, monate: null, key: "13,870 / 1000 MEA", share: "801", amount: null, hgMatch: "HAUSMEISTER|AUSSENANLAGE" },
+                    { name: "Aufzug / Lift - Kosten", gesamt: null, monate: null, key: "13,870 / 1000 MEA", share: "801", amount: null, hgMatch: "LIFT" },
+                    { name: "Müllgebühren", gesamt: null, monate: null, key: "13,870 / 1000 MEA", share: "801", amount: null, hgMatch: "MÜLL" },
+                    { name: "Sach- und Gebäudeversicherungen", gesamt: null, monate: null, key: "13,870 / 1000 MEA", share: "801", amount: null, hgMatch: "VERS\\." }
+                ],
+                defaultVorauszahlung: [
+                    { months: 6, rate: 265.00, label: "Jan – Jun" }
+                ]
+            },
+
+            "mls_801_neu": {
+                matchPattern: "801|MARTIN-LUTHER.*801|WE 801|21\\.103003",
+                empfaenger: { name: "Nachmieter Whg. 801", adresse: "Martin-Luther-Str. 7, Whg. 801", ort: "79312 Emmendingen" },
+                objekt: { adresse: "Martin-Luther-Str. 7, Whg. 801, 79312 Emmendingen", einzug: "01.07.2026", auszug: "------", mieteDefault: "709,45", dateFrom: "01.07.2026", dateTo: "31.12.2026" },
+                defaultPositions: [
+                    { name: "Heizkosten", gesamt: null, monate: null, key: "laut Abrechnung", share: "Whg. 801", amount: null, hgMatch: "HEIZKOSTEN" },
+                    { name: "Öffentliche Lasten (Grundsteuer)", gesamt: null, monate: null, key: "Split 801/901", share: "Whg. 801", amount: null, hgMatch: "GRUNDSTEUER", dbMatch: "GRUNDSTEUER" },
+                    { name: "Wasser & Abwasser", gesamt: null, monate: null, key: "laut Abrechnung", share: "Whg. 801", amount: null, hgMatch: "WASSER/ABW" },
+                    { name: "Hausmeister & Außenanlage", gesamt: null, monate: null, key: "13,870 / 1000 MEA", share: "801", amount: null, hgMatch: "HAUSMEISTER|AUSSENANLAGE" },
+                    { name: "Aufzug / Lift - Kosten", gesamt: null, monate: null, key: "13,870 / 1000 MEA", share: "801", amount: null, hgMatch: "LIFT" },
+                    { name: "Müllgebühren", gesamt: null, monate: null, key: "13,870 / 1000 MEA", share: "801", amount: null, hgMatch: "MÜLL" },
+                    { name: "Sach- und Gebäudeversicherungen", gesamt: null, monate: null, key: "13,870 / 1000 MEA", share: "801", amount: null, hgMatch: "VERS\\." }
+                ],
+                defaultVorauszahlung: [
+                    { months: 6, rate: 265.00, label: "Jul – Dez" }
+                ]
+            },
+
+            "mls_801_custom": {
+                matchPattern: "801|MARTIN-LUTHER.*801|WE 801|21\\.103003",
+                empfaenger: { name: "Neuer Mieter", adresse: "Martin-Luther-Str. 7, Whg. 801", ort: "79312 Emmendingen" },
+                objekt: { adresse: "Martin-Luther-Str. 7, Whg. 801, 79312 Emmendingen", einzug: "01.01.2026", auszug: "------", mieteDefault: "709,45", dateFrom: "01.01.2026", dateTo: "31.12.2026" },
+                defaultPositions: [
+                    { name: "Heizkosten", gesamt: null, monate: null, key: "laut Abrechnung", share: "Whg. 801", amount: null, hgMatch: "HEIZKOSTEN" },
+                    { name: "Öffentliche Lasten (Grundsteuer)", gesamt: null, monate: null, key: "Split 801/901", share: "Whg. 801", amount: null, hgMatch: "GRUNDSTEUER", dbMatch: "GRUNDSTEUER" },
+                    { name: "Wasser & Abwasser", gesamt: null, monate: null, key: "laut Abrechnung", share: "Whg. 801", amount: null, hgMatch: "WASSER/ABW" },
+                    { name: "Hausmeister & Außenanlage", gesamt: null, monate: null, key: "13,870 / 1000 MEA", share: "801", amount: null, hgMatch: "HAUSMEISTER|AUSSENANLAGE" },
+                    { name: "Aufzug / Lift - Kosten", gesamt: null, monate: null, key: "13,870 / 1000 MEA", share: "801", amount: null, hgMatch: "LIFT" },
+                    { name: "Müllgebühren", gesamt: null, monate: null, key: "13,870 / 1000 MEA", share: "801", amount: null, hgMatch: "MÜLL" },
+                    { name: "Sach- und Gebäudeversicherungen", gesamt: null, monate: null, key: "13,870 / 1000 MEA", share: "801", amount: null, hgMatch: "VERS\\." }
+                ],
+                defaultVorauszahlung: [
+                    { months: 12, rate: 265.00, label: "aus Bankauszug" }
+                ]
+            },
+
+            "mls_901_rusev": {
+                matchPattern: "901|MARTIN-LUTHER.*901|WE 901|21\\.103702|WO\\.NR\\.?\\s*901|RUSEV|MARTIN RUSEV",
+                empfaenger: { name: "Martin Rusev", adresse: "Martin-Luther-Str. 7, Whg. 901", ort: "79312 Emmendingen" },
+                objekt: { adresse: "Martin-Luther-Str. 7, Whg. 901, 79312 Emmendingen", einzug: "01.09.2025", auszug: "------", mieteDefault: "800,00", dateFrom: "01.01.2026", dateTo: "31.12.2026" },
+                defaultPositions: [
+                    { name: "Heizkosten", gesamt: null, monate: null, key: "laut Abrechnung", share: "Whg. 901", amount: null, hgMatch: "HEIZKOSTEN" },
+                    { name: "Öffentliche Lasten (Grundsteuer)", gesamt: null, monate: null, key: "Split 801/901", share: "Whg. 901", amount: null, hgMatch: "GRUNDSTEUER", dbMatch: "GRUNDSTEUER" },
+                    { name: "Wasser & Abwasser", gesamt: null, monate: null, key: "laut Abrechnung", share: "Whg. 901", amount: null, hgMatch: "WASSER/ABW" },
+                    { name: "Hausmeister & Außenanlage", gesamt: null, monate: null, key: "13,870 / 1000 MEA", share: "901", amount: null, hgMatch: "HAUSMEISTER|AUSSENANLAGE" },
+                    { name: "Aufzug / Lift - Kosten", gesamt: null, monate: null, key: "13,870 / 1000 MEA", share: "901", amount: null, hgMatch: "LIFT" },
+                    { name: "Müllgebühren", gesamt: null, monate: null, key: "13,870 / 1000 MEA", share: "901", amount: null, hgMatch: "MÜLL" },
+                    { name: "Sach- und Gebäudeversicherungen", gesamt: null, monate: null, key: "13,870 / 1000 MEA", share: "901", amount: null, hgMatch: "VERS\\." }
+                ],
+                defaultVorauszahlung: [
+                    { months: 12, rate: 300.00, label: "aus Bankauszug" }
+                ]
+            },
+
+            "mls_901_graetz": {
+                matchPattern: "901|MARTIN-LUTHER.*901|WE 901|21\\.103702|WO\\.NR\\.?\\s*901|GR.*TZ|ANITA GR.*TZ",
+                empfaenger: { name: "Anita Grätz", adresse: "Martin-Luther-Str. 7, Whg. 901", ort: "79312 Emmendingen" },
+                objekt: { adresse: "Martin-Luther-Str. 7, Whg. 901, 79312 Emmendingen", einzug: "01.10.2021", auszug: "31.08.2025", mieteDefault: "800,00", dateFrom: "01.01.2025", dateTo: "31.08.2025" },
+                defaultPositions: [
+                    { name: "Heizkosten", gesamt: null, monate: null, key: "laut Abrechnung", share: "Whg. 901", amount: null, hgMatch: "HEIZKOSTEN" },
+                    { name: "Öffentliche Lasten (Grundsteuer)", gesamt: null, monate: null, key: "Split 801/901", share: "Whg. 901", amount: null, hgMatch: "GRUNDSTEUER", dbMatch: "GRUNDSTEUER" },
+                    { name: "Wasser & Abwasser", gesamt: null, monate: null, key: "laut Abrechnung", share: "Whg. 901", amount: null, hgMatch: "WASSER/ABW" },
+                    { name: "Hausmeister & Außenanlage", gesamt: null, monate: null, key: "13,870 / 1000 MEA", share: "901", amount: null, hgMatch: "HAUSMEISTER|AUSSENANLAGE" },
+                    { name: "Aufzug / Lift - Kosten", gesamt: null, monate: null, key: "13,870 / 1000 MEA", share: "901", amount: null, hgMatch: "LIFT" },
+                    { name: "Müllgebühren", gesamt: null, monate: null, key: "13,870 / 1000 MEA", share: "901", amount: null, hgMatch: "MÜLL" },
+                    { name: "Sach- und Gebäudeversicherungen", gesamt: null, monate: null, key: "13,870 / 1000 MEA", share: "901", amount: null, hgMatch: "VERS\\." }
+                ],
+                defaultVorauszahlung: [
+                    { months: 8, rate: 300.00, label: "Jan – Aug" }
+                ]
+            },
+
+            "mls_901_current": {
+                matchPattern: "901|MARTIN-LUTHER.*901|WE 901|21\\.103702",
+                empfaenger: { name: "Martin Rusev", adresse: "Martin-Luther-Str. 7, Whg. 901", ort: "79312 Emmendingen" },
+                objekt: { adresse: "Martin-Luther-Str. 7, Whg. 901, 79312 Emmendingen", einzug: "01.09.2025", auszug: "------", mieteDefault: "800,00", dateFrom: "01.01.2026", dateTo: "31.12.2026" },
+                defaultPositions: [
+                    { name: "Heizkosten", gesamt: null, monate: null, key: "laut Abrechnung", share: "Whg. 901", amount: null, hgMatch: "HEIZKOSTEN" },
+                    { name: "Öffentliche Lasten (Grundsteuer)", gesamt: null, monate: null, key: "Split 801/901", share: "Whg. 901", amount: null, hgMatch: "GRUNDSTEUER", dbMatch: "GRUNDSTEUER" },
+                    { name: "Wasser & Abwasser", gesamt: null, monate: null, key: "laut Abrechnung", share: "Whg. 901", amount: null, hgMatch: "WASSER/ABW" },
+                    { name: "Hausmeister & Außenanlage", gesamt: null, monate: null, key: "13,870 / 1000 MEA", share: "901", amount: null, hgMatch: "HAUSMEISTER|AUSSENANLAGE" },
+                    { name: "Aufzug / Lift - Kosten", gesamt: null, monate: null, key: "13,870 / 1000 MEA", share: "901", amount: null, hgMatch: "LIFT" },
+                    { name: "Müllgebühren", gesamt: null, monate: null, key: "13,870 / 1000 MEA", share: "901", amount: null, hgMatch: "MÜLL" },
+                    { name: "Sach- und Gebäudeversicherungen", gesamt: null, monate: null, key: "13,870 / 1000 MEA", share: "901", amount: null, hgMatch: "VERS\\." }
+                ],
+                defaultVorauszahlung: [
+                    { months: 12, rate: 300.00, label: "aus Bankauszug" }
+                ]
+            },
+
+            "mls_901_custom": {
+                matchPattern: "901|MARTIN-LUTHER.*901|WE 901|21\\.103702",
+                empfaenger: { name: "Neuer Mieter", adresse: "Martin-Luther-Str. 7, Whg. 901", ort: "79312 Emmendingen" },
+                objekt: { adresse: "Martin-Luther-Str. 7, Whg. 901, 79312 Emmendingen", einzug: "01.01.2026", auszug: "------", mieteDefault: "800,00", dateFrom: "01.01.2026", dateTo: "31.12.2026" },
+                defaultPositions: [
+                    { name: "Heizkosten", gesamt: null, monate: null, key: "laut Abrechnung", share: "Whg. 901", amount: null, hgMatch: "HEIZKOSTEN" },
+                    { name: "Öffentliche Lasten (Grundsteuer)", gesamt: null, monate: null, key: "Split 801/901", share: "Whg. 901", amount: null, hgMatch: "GRUNDSTEUER", dbMatch: "GRUNDSTEUER" },
+                    { name: "Wasser & Abwasser", gesamt: null, monate: null, key: "laut Abrechnung", share: "Whg. 901", amount: null, hgMatch: "WASSER/ABW" },
+                    { name: "Hausmeister & Außenanlage", gesamt: null, monate: null, key: "13,870 / 1000 MEA", share: "901", amount: null, hgMatch: "HAUSMEISTER|AUSSENANLAGE" },
+                    { name: "Aufzug / Lift - Kosten", gesamt: null, monate: null, key: "13,870 / 1000 MEA", share: "901", amount: null, hgMatch: "LIFT" },
+                    { name: "Müllgebühren", gesamt: null, monate: null, key: "13,870 / 1000 MEA", share: "901", amount: null, hgMatch: "MÜLL" },
+                    { name: "Sach- und Gebäudeversicherungen", gesamt: null, monate: null, key: "13,870 / 1000 MEA", share: "901", amount: null, hgMatch: "VERS\\." }
+                ],
+                defaultVorauszahlung: [
+                    { months: 6, rate: 300.00, label: "Staffel" }
+                ]
+            }
+        };
+
+        function parseGermanDate(str) {
+            if (!str) return 0;
+            const p = str.replace(/-/g, '.').split('.');
+            return (p.length === 3) ? (p[0].length === 4 ? new Date(p[0], p[1]-1, p[2]).getTime() : new Date(p[2], p[1]-1, p[0]).getTime()) : 0;
+        }
+
+        function calculateMonthsDifference(dFromStr, dToStr) {
+            const p1 = dFromStr.split('.');
+            const p2 = dToStr.split('.');
+            if (p1.length === 3 && p2.length === 3) {
+                const m1 = parseInt(p1[1], 10);
+                const y1 = parseInt(p1[2], 10);
+                const m2 = parseInt(p2[1], 10);
+                const y2 = parseInt(p2[2], 10);
+                const diff = (y2 - y1) * 12 + (m2 - m1) + 1;
+                return Math.max(1, Math.min(12, diff));
+            }
+            return 12;
+        }
+
+        function formatCurrency(val) {
+            if (val === null || val === undefined || isNaN(val) || val === "") return '<span class="empty-val">-</span>';
+            return parseFloat(Math.abs(val)).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
+        }
+
+        function getTodayGerman() {
+            const d = new Date();
+            const dd = String(d.getDate()).padStart(2, '0');
+            const mm = String(d.getMonth() + 1).padStart(2, '0');
+            const yyyy = d.getFullYear();
+            return `${dd}.${mm}.${yyyy}`;
+        }
+
+        function handleHausgeldFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const text = e.target.result;
+                    if (file.name.endsWith('.json')) {
+                        const parsed = JSON.parse(text);
+                        loadedHausgeldDatabase = Array.isArray(parsed) ? parsed : [parsed];
+                        document.getElementById('hausgeldStatusBadge').innerHTML = `<span style="color: #7c3aed;">● Hausgeld-JSON geladen (${loadedHausgeldDatabase.length} WE)</span>`;
+                    } else {
+                        const lines = text.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
+                        const headers = lines[0].split(';').map(h => h.trim().replace(/^"|"$/g, ''));
+                        const rows = [];
+                        for (let i = 1; i < lines.length; i++) {
+                            const cols = lines[i].split(';').map(c => c.trim().replace(/^"|"$/g, ''));
+                            if (cols.length >= 5) {
+                                const obj = {};
+                                headers.forEach((h, idx) => { obj[h] = cols[idx]; });
+                                rows.push(obj);
+                            }
+                        }
+                        loadedHausgeldDatabase = rows;
+                        document.getElementById('hausgeldStatusBadge').innerHTML = `<span style="color: #7c3aed;">● Hausgeld-CSV geladen (${rows.length} Zeilen)</span>`;
+                    }
+                    calculateFromDatabase();
+                } catch (err) {
+                    alert('Fehler beim Einlesen der Hausgeld-Datei: ' + err.message);
+                }
+            };
+            reader.readAsText(file, 'UTF-8');
+        }
+
+        function handleBankFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const parsed = JSON.parse(e.target.result);
+                    loadedBankDatabase = parsed.Buchungen || parsed;
+                    document.getElementById('dbStatusBadge').innerHTML = `<span style="color: #16a34a;">● datenbank.json geladen (${loadedBankDatabase.length} Buchungen)</span>`;
+                    calculateFromDatabase();
+                } catch (err) {
+                    alert('Fehler beim Lesen der datenbank.json: ' + err.message);
+                }
+            };
+            reader.readAsText(file, 'UTF-8');
+        }
+
+        function calculateFromDatabase() {
+            const prop = propertiesData[currentObjectKey];
+            if (!prop) return;
+
+            const fromTs = parseGermanDate(currentDateFrom);
+            const toTs = parseGermanDate(currentDateTo);
+            const pYear = currentDateFrom.split('.');
+            const selectedYear = (pYear.length === 3 && pYear[2].length === 4) ? pYear[2] : (currentDateTo.split('.')[2] || "2026");
+            const objRegex = new RegExp(prop.matchPattern, "i");
+
+            const activePositions = JSON.parse(JSON.stringify(prop.defaultPositions));
+            let mieteAusDb = null;
+            let hasHausgeldData = false;
+
+            const matchedHgIndices = new Set();
+            const tenancyMonths = calculateMonthsDifference(currentDateFrom, currentDateTo);
+            const isProrated = document.getElementById('chkAutoProrate').checked && (tenancyMonths < 12);
+            const prorateFactor = isProrated ? (tenancyMonths / 12.0) : 1.0;
+
+            if (loadedHausgeldDatabase && Array.isArray(loadedHausgeldDatabase)) {
+                if (loadedHausgeldDatabase.length > 0 && loadedHausgeldDatabase[0].Positionen) {
+                    const relevantReport = loadedHausgeldDatabase.find(rep => {
+                        const mObj = objRegex.test(rep.Objekt || "") || objRegex.test(rep.Einheit || "") || objRegex.test(rep.Datei || "");
+                        const mYear = (rep.Abrechnungszeitraum && rep.Abrechnungszeitraum.includes(selectedYear));
+                        return (mObj && mYear);
+                    });
+
+                    if (relevantReport && relevantReport.Positionen) {
+                        hasHausgeldData = true;
+                        
+                        activePositions.forEach(pos => {
+                            if (pos.hgMatch) {
+                                const hgRegex = new RegExp(pos.hgMatch, "i");
+                                const matchingItems = [];
+                                const seenPosNames = new Set();
+
+                                relevantReport.Positionen.forEach((p, idx) => {
+                                    if (hgRegex.test(p.Position || "") && p.Kategorie === "Betriebskosten") {
+                                        matchedHgIndices.add(idx);
+                                        const normName = (p.Position || "").trim().toLowerCase();
+                                        if (!seenPosNames.has(normName)) {
+                                            seenPosNames.add(normName);
+                                            matchingItems.push(p);
+                                        }
+                                    }
+                                });
+
+                                if (matchingItems.length > 0) {
+                                    let sumAnteil = 0, sumGesamt = 0;
+                                    matchingItems.forEach(mi => {
+                                        sumAnteil += Math.abs(parseFloat(mi.IhrAnteil)) || 0;
+                                        sumGesamt += Math.abs(parseFloat(mi.Gesamtbetrag)) || 0;
+                                    });
+
+                                    pos.amount = sumAnteil * prorateFactor;
+                                    pos.monate = isProrated ? `${tenancyMonths}/12` : null;
+
+                                    if (sumGesamt > 0) pos.gesamt = sumGesamt;
+
+                                    let keyClean = matchingItems[0].Schluessel || pos.key;
+                                    if (keyClean) {
+                                        if (keyClean.includes("273") && keyClean.includes("1000")) keyClean = "273,0000 / 1000 MEA";
+                                        else if (keyClean.includes("13,87") && keyClean.includes("1000")) keyClean = "13,870 / 1000 MEA";
+                                        pos.key = keyClean;
+                                    }
+                                }
+                            }
+                        });
+
+                        relevantReport.Positionen.forEach((p, idx) => {
+                            if (p.Kategorie === "Betriebskosten" && !matchedHgIndices.has(idx)) {
+                                const normP = (p.Position || "").trim().toLowerCase();
+                                const alreadyInActive = activePositions.some(ap => ap.name.trim().toLowerCase() === normP || (ap.amount !== null && ap.hgMatch && new RegExp(ap.hgMatch, "i").test(normP)));
+                                
+                                if (!alreadyInActive) {
+                                    matchedHgIndices.add(idx);
+                                    let keyClean = p.Schluessel || "direkt";
+                                    if (keyClean.includes("273") && keyClean.includes("1000")) keyClean = "273,0000 / 1000 MEA";
+                                    else if (keyClean.includes("13,87") && keyClean.includes("1000")) keyClean = "13,870 / 1000 MEA";
+
+                                    const rawAnteil = Math.abs(parseFloat(p.IhrAnteil)) || null;
+
+                                    activePositions.push({
+                                        name: p.Position,
+                                        gesamt: Math.abs(parseFloat(p.Gesamtbetrag)) || null,
+                                        monate: isProrated ? `${tenancyMonths}/12` : null,
+                                        key: keyClean,
+                                        share: "",
+                                        amount: rawAnteil !== null ? (rawAnteil * prorateFactor) : null
+                                    });
+                                }
+                            }
+                        });
+                    }
+                } else {
+                    const relevantRows = loadedHausgeldDatabase.filter(row => {
+                        const mObj = objRegex.test(row.Wohneinheit || "") || objRegex.test(row.Original_PDF || "");
+                        const mYear = (row.Wirtschaftsjahr && row.Wirtschaftsjahr.includes(selectedYear));
+                        return (mObj && mYear);
+                    });
+
+                    if (relevantRows.length > 0) {
+                        hasHausgeldData = true;
+                        activePositions.forEach(pos => {
+                            if (pos.hgMatch) {
+                                const hgRegex = new RegExp(pos.hgMatch, "i");
+                                const matchingRows = [];
+                                const seenPosNames = new Set();
+
+                                relevantRows.forEach((r, idx) => {
+                                    if (hgRegex.test(r.Position || "") && (!r.Kategorie || r.Kategorie === "Betriebskosten")) {
+                                        matchedHgIndices.add(idx);
+                                        const normName = (r.Position || "").trim().toLowerCase();
+                                        if (!seenPosNames.has(normName)) {
+                                            seenPosNames.add(normName);
+                                            matchingRows.push(r);
+                                        }
+                                    }
+                                });
+
+                                if (matchingRows.length > 0) {
+                                    let sumAnteil = 0, sumGesamt = 0;
+                                    matchingRows.forEach(fr => {
+                                        const cleanA = (fr.Ihr_Anteil_EUR || "").replace(/\./g, '').replace(',', '.');
+                                        const cleanG = (fr.Gesamtbetrag_EUR || "").replace(/\./g, '').replace(',', '.');
+                                        sumAnteil += Math.abs(parseFloat(cleanA)) || 0;
+                                        sumGesamt += Math.abs(parseFloat(cleanG)) || 0;
+                                    });
+                                    pos.amount = sumAnteil * prorateFactor;
+                                    pos.monate = isProrated ? `${tenancyMonths}/12` : null;
+                                    if (sumGesamt > 0) pos.gesamt = sumGesamt;
+
+                                    let keyClean = matchingRows[0].Verteilerschluessel || pos.key;
+                                    if (keyClean) {
+                                        if (keyClean.includes("273") && keyClean.includes("1000")) keyClean = "273,0000 / 1000 MEA";
+                                        else if (keyClean.includes("13,87") && keyClean.includes("1000")) keyClean = "13,870 / 1000 MEA";
+                                        pos.key = keyClean;
+                                    }
+                                }
+                            }
+                        });
+                    }
+                }
+            }
+
+            const hgBadge = document.getElementById('hausgeldStatusBadge');
+            if (hasHausgeldData) {
+                hgBadge.innerHTML = `<span style="color: #16a34a;">● Hausgeld ${selectedYear} geladen</span>`;
+            } else if (loadedHausgeldDatabase) {
+                hgBadge.innerHTML = `<span style="color: #e67e22;">⚠️ Keine Hausgeld-Abrechnung für ${selectedYear} vorhanden</span>`;
+            } else {
+                hgBadge.innerHTML = `<span style="color: #64748b;">○ Kein Hausgeld geladen</span>`;
+            }
+
+            if (loadedBankDatabase && Array.isArray(loadedBankDatabase)) {
+                const relevantTx = loadedBankDatabase.filter(tx => {
+                    const txTs = parseGermanDate(tx.Datum);
+                    const inPeriod = (txTs >= fromTs && txTs <= toTs);
+                    const isObj = objRegex.test(tx.Objekt || "") || objRegex.test(tx.Buchungstext || "");
+                    return inPeriod && isObj;
+                });
+
+                relevantTx.forEach(tx => {
+                    if (tx.Hauptkat === "Mieteinnahmen" && tx.IsSplit && tx.SplitDetails) {
+                        const kalt = parseFloat(tx.SplitDetails.Kaltmiete) || 0;
+                        const stell = parseFloat(tx.SplitDetails.Stellplatz) || 0;
+                        if (kalt + stell > 0) mieteAusDb = kalt + stell;
+                    }
+                });
+
+                activePositions.forEach(pos => {
+                    if (pos.name.includes("Grundsteuer")) {
+                        let unitSum = 0, found = false;
+                        loadedBankDatabase.forEach(tx => {
+                            const txTs = parseGermanDate(tx.Datum);
+                            if (txTs >= fromTs && txTs <= toTs) {
+                                const text = ((tx.Buchungstext || "") + " " + (tx.Unterkat || "") + " " + (tx.Objekt || "")).toUpperCase();
+                                if (text.includes("GRUNDSTEUER")) {
+                                    if (currentObjectKey.startsWith("mls_801") && (text.includes("EMMENDINGEN") || text.includes("801/901"))) {
+                                        const part = (tx.IsSplit && tx.SplitDetails && tx.SplitDetails.Whg801 !== undefined)
+                                            ? Math.abs(parseFloat(String(tx.SplitDetails.Whg801).replace(',', '.')) || 0) : 30.61;
+                                        unitSum += part; found = true;
+                                    } else if ((currentObjectKey.startsWith("mls_901")) && (text.includes("EMMENDINGEN") || text.includes("801/901"))) {
+                                        const part = (tx.IsSplit && tx.SplitDetails && tx.SplitDetails.Whg901 !== undefined)
+                                            ? Math.abs(parseFloat(String(tx.SplitDetails.Whg901).replace(',', '.')) || 0) : 30.86;
+                                        unitSum += part; found = true;
+                                    } else if (currentObjectKey.startsWith("bruehlweg") && text.includes("MERDINGEN")) {
+                                        unitSum += Math.abs(tx.Betrag); found = true;
+                                    }
+                                }
+                            }
+                        });
+                        if (found && unitSum > 0) pos.amount = unitSum;
+                    }
+
+                    if (pos.name.includes("Schornstein") && currentObjectKey.startsWith("bruehlweg")) {
+                        let sfSum = 0, foundSf = false;
+                        relevantTx.forEach(tx => {
+                            const text = ((tx.Buchungstext || "") + " " + (tx.Unterkat || "")).toUpperCase();
+                            if (text.includes("KLINGENBERG") || (text.includes("SCHORNSTEIN") && tx.Betrag < 0)) {
+                                sfSum += Math.abs(tx.Betrag); foundSf = true;
+                            }
+                        });
+                        if (foundSf) pos.amount = sfSum;
+                    }
+                });
+
+                const prepaymentMap = {};
+                relevantTx.forEach(tx => {
+                    if (tx.Hauptkat === "Mieteinnahmen" && tx.IsSplit && tx.SplitDetails && tx.SplitDetails.Nebenkosten > 0) {
+                        const nkRate = tx.SplitDetails.Nebenkosten;
+                        prepaymentMap[nkRate] = (prepaymentMap[nkRate] || 0) + 1;
+                    }
+                });
+
+                const dynamicTiers = [];
+                Object.keys(prepaymentMap).forEach(rate => {
+                    dynamicTiers.push({ months: prepaymentMap[rate], rate: parseFloat(rate), label: "aus Bankauszug" });
+                });
+
+                if (dynamicTiers.length > 0) {
+                    currentPrepaymentTiers = dynamicTiers;
+                }
+            }
+
+            const displayedMiete = (mieteAusDb !== null) 
+                ? mieteAusDb.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) 
+                : prop.objekt.mieteDefault;
+
+            renderPrepaymentEditor();
+            renderAbrechnung(activePositions, displayedMiete);
+        }
+
+        function renderPrepaymentEditor() {
+            const container = document.getElementById('prepaymentEditorList');
+            container.innerHTML = '';
+
+            if (currentPrepaymentTiers.length === 0) {
+                container.innerHTML = '<div style="font-size: 11.5px; color: var(--text-muted); font-style: italic;">Keine Vorauszahlungen erfasst. Bitte über den Button hinzufügen oder datenbank.json laden.</div>';
+                return;
+            }
+
+            currentPrepaymentTiers.forEach((tier, index) => {
+                const row = document.createElement('div');
+                row.className = 'prepayment-row-editor';
+                row.innerHTML = `
+                    <span style="font-size: 11.5px; font-weight: 600; color: var(--text-muted);">Staffel ${index + 1}:</span>
+                    <input type="number" min="1" max="12" class="form-control num-input-sm" value="${tier.months}" oninput="updateTier(${index}, 'months', this.value)">
+                    <span style="font-size: 12px; font-weight: bold;">x</span>
+                    <input type="text" class="form-control num-input-md" value="${tier.rate.toFixed(2).replace('.', ',')}" oninput="updateTier(${index}, 'rate', this.value)">
+                    <span style="font-size: 12px;">€</span>
+                    <input type="text" class="form-control text-input-sm" value="${tier.label || ''}" placeholder="z. B. Jan – Dez" oninput="updateTier(${index}, 'label', this.value)">
+                    <span style="font-size: 11.5px; font-weight: 700; color: var(--primary); min-width: 75px; text-align: right;">= ${(tier.months * tier.rate).toLocaleString('de-DE', {minimumFractionDigits: 2})} €</span>
+                    <button type="button" class="btn-del" onclick="removePrepaymentTier(${index})" title="Löschen">✖</button>
+                `;
+                container.appendChild(row);
+            });
+        }
+
+        function updateTier(index, field, value) {
+            if (field === 'months') currentPrepaymentTiers[index].months = parseInt(value, 10) || 0;
+            else if (field === 'rate') currentPrepaymentTiers[index].rate = parseFloat(value.replace(/\./g, '').replace(',', '.')) || 0;
+            else if (field === 'label') currentPrepaymentTiers[index].label = value;
+            calculateFromDatabase();
+        }
+
+        function addPrepaymentTier() {
+            currentPrepaymentTiers.push({ months: 6, rate: 300.00, label: "Staffel" });
+            renderPrepaymentEditor();
+            calculateFromDatabase();
+        }
+
+        function removePrepaymentTier(index) {
+            currentPrepaymentTiers.splice(index, 1);
+            renderPrepaymentEditor();
+            calculateFromDatabase();
+        }
+
+        function renderAbrechnung(positionsToRender, mieteValue) {
+            const data = propertiesData[currentObjectKey];
+            if (!data) return;
+
+            const today = getTodayGerman();
+
+            document.getElementById('var_mieter_name').innerText = currentMieterName;
+            document.getElementById('var_mieter_adresse').innerText = currentMieterAdresse;
+            document.getElementById('var_mieter_ort').innerText = currentMieterOrt;
+
+            document.getElementById('var_objekt_adresse').innerText = data.objekt.adresse;
+            document.getElementById('var_zeitraum').innerText = `${currentDateFrom} bis ${currentDateTo}`;
+            document.getElementById('var_mietzeitraum').innerText = `Einzug: ${currentEinzug} | Auszug: ${currentAuszug}`;
+            document.getElementById('var_kaltmiete').innerText = (mieteValue || data.objekt.mieteDefault) + ' €';
+
+            document.getElementById('var_erstellungsdatum').innerText = today;
+            document.getElementById('var_unterschrift_ort_datum').innerText = `Freiburg, den ${today}`;
+
+            const posList = positionsToRender || data.defaultPositions;
+            const tbody = document.getElementById('costTableBody');
+            tbody.innerHTML = '';
+            let summeKosten = 0;
+            let rowCounter = 1;
+
+            posList.forEach(item => {
+                const hasAmount = (item.amount !== null && !isNaN(item.amount));
+                if (hasAmount) {
+                    summeKosten += Math.abs(parseFloat(item.amount));
+                }
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td style="text-align: center; color: var(--text-muted);">${rowCounter++}.</td>
+                    <td style="${item.isHeader ? 'font-weight:700;' : ''}">${item.name || ''}</td>
+                    <td class="num-col num">${formatCurrency(item.gesamt)}</td>
+                    <td style="text-align: center;">${item.monate || '<span class="empty-val">-</span>'}</td>
+                    <td>${item.key || '<span class="empty-val">-</span>'}</td>
+                    <td style="text-align: center;">${item.share || '<span class="empty-val">-</span>'}</td>
+                    <td class="num-col num" style="font-weight: ${hasAmount ? '700' : 'normal'};">${formatCurrency(item.amount)}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            const prepaymentsContainer = document.getElementById('prepaymentsList');
+            prepaymentsContainer.innerHTML = '';
+            let summeVorauszahlung = 0;
+
+            currentPrepaymentTiers.forEach(v => {
+                const tierTotal = (v.months || 0) * (v.rate || 0);
+                summeVorauszahlung += tierTotal;
+                const row = document.createElement('div');
+                row.className = 'prepayment-row';
+                const labelText = v.label ? `${v.months}x ${v.rate.toLocaleString('de-DE', {minimumFractionDigits: 2})} € (${v.label})` : `${v.months}x ${v.rate.toLocaleString('de-DE', {minimumFractionDigits: 2})} €`;
+                row.innerHTML = `
+                    <span>${labelText}</span>
+                    <strong class="num">${formatCurrency(tierTotal)}</strong>
+                `;
+                prepaymentsContainer.appendChild(row);
+            });
+
+            const totalPrepaymentRow = document.createElement('div');
+            totalPrepaymentRow.className = 'prepayment-row';
+            totalPrepaymentRow.style.cssText = 'border-top: 1px solid var(--border-subtle); margin-top: 4px; padding-top: 3px; font-weight: 700;';
+            totalPrepaymentRow.innerHTML = `
+                <span>Summe Vorauszahlungen:</span>
+                <strong class="num">${formatCurrency(summeVorauszahlung)}</strong>
+            `;
+            prepaymentsContainer.appendChild(totalPrepaymentRow);
+
+            const diff = summeKosten - summeVorauszahlung;
+            const isNachzahlung = diff >= 0;
+
+            document.getElementById('var_summe_kosten').innerText = formatCurrency(summeKosten);
+            document.getElementById('var_summe_vorauszahlungen').innerText = formatCurrency(summeVorauszahlung);
+            document.getElementById('var_saldo_betrag').innerText = formatCurrency(Math.abs(diff));
+
+            const balanceBox = document.getElementById('balanceBox');
+            const balanceLabel = document.getElementById('balanceLabel');
+
+            if (isNachzahlung) {
+                balanceBox.className = 'balance-box nachzahlung';
+                balanceLabel.innerText = 'Nachzahlung (Mieter):';
+                document.getElementById('var_bemerkung').innerText = "Bitte überweisen Sie den Nachzahlungsbetrag innerhalb von 30 Tagen auf das bekannte Bankkonto.";
+            } else {
+                balanceBox.className = 'balance-box guthaben';
+                balanceLabel.innerText = 'Guthaben (für Mieter):';
+                document.getElementById('var_bemerkung').innerText = "Das entstandene Guthaben wird auf Ihr Bankkonto erstattet.";
+            }
+        }
+
+        function onObjectChange(selectedKey) {
+            currentObjectKey = selectedKey;
+            const data = propertiesData[selectedKey];
+            if (data) {
+                currentMieterName = data.empfaenger.name;
+                currentMieterAdresse = data.empfaenger.adresse;
+                currentMieterOrt = data.empfaenger.ort;
+                currentEinzug = data.objekt.einzug;
+                currentAuszug = data.objekt.auszug;
+                currentDateFrom = data.objekt.dateFrom;
+                currentDateTo = data.objekt.dateTo;
+                currentPrepaymentTiers = JSON.parse(JSON.stringify(data.defaultVorauszahlung));
+
+                document.getElementById('inputMieterName').value = currentMieterName;
+                document.getElementById('inputMieterAdresse').value = currentMieterAdresse;
+                document.getElementById('inputMieterOrt').value = currentMieterOrt;
+                document.getElementById('inputEinzug').value = currentEinzug;
+                document.getElementById('inputAuszug').value = currentAuszug;
+                document.getElementById('inputDateFrom').value = currentDateFrom;
+                document.getElementById('inputDateTo').value = currentDateTo;
+            }
+            calculateFromDatabase();
+        }
+
+        function updateMieterData() {
+            currentMieterName = document.getElementById('inputMieterName').value.trim() || '-';
+            currentMieterAdresse = document.getElementById('inputMieterAdresse').value.trim() || '-';
+            currentMieterOrt = document.getElementById('inputMieterOrt').value.trim() || '-';
+            calculateFromDatabase();
+        }
+
+        function onYearQuickSelect(yearVal) {
+            if (yearVal !== "custom") {
+                if (currentObjectKey.includes("palm") && yearVal === "2026") {
+                    currentDateFrom = "01.03.2026";
+                } else if (currentObjectKey.includes("rusev") && yearVal === "2025") {
+                    currentDateFrom = "01.09.2025";
+                } else {
+                    currentDateFrom = `01.01.${yearVal}`;
+                }
+                currentDateTo = `31.12.${yearVal}`;
+                document.getElementById('inputDateFrom').value = currentDateFrom;
+                document.getElementById('inputDateTo').value = currentDateTo;
+                calculateFromDatabase();
+            }
+        }
+
+        function updateCustomPeriod() {
+            currentDateFrom = document.getElementById('inputDateFrom').value.trim();
+            currentDateTo = document.getElementById('inputDateTo').value.trim();
+            document.getElementById('yearQuickSelect').value = "custom";
+            calculateFromDatabase();
+        }
+
+        function updateMietzeitraum() {
+            currentEinzug = document.getElementById('inputEinzug').value.trim() || '------';
+            currentAuszug = document.getElementById('inputAuszug').value.trim() || '------';
+            calculateFromDatabase();
+        }
+
+        // Automatisch datenbank.json und Hausgeld_Datenbank.json aus allen Pfaden laden
+        window.addEventListener('DOMContentLoaded', async () => {
+            currentPrepaymentTiers = JSON.parse(JSON.stringify(propertiesData[currentObjectKey].defaultVorauszahlung));
+
+            // 1. Bank-Datenbank automatisch laden
+            const dbUrls = [
+                'datenbank.json',
+                '/datenbank.json',
+                'Datenbanken/datenbank.json',
+                '/Datenbanken/datenbank.json',
+                'Betriebskostenabrechnung/datenbank.json',
+                '/Betriebskostenabrechnung/datenbank.json',
+                'http://localhost:8085/datenbank.json',
+                'http://localhost:8086/datenbank.json'
+            ];
+            for (const url of dbUrls) {
+                try {
+                    const res = await fetch(url);
+                    if (res.ok) {
+                        const parsed = await res.json();
+                        loadedBankDatabase = parsed.Buchungen || parsed;
+                        document.getElementById('dbStatusBadge').innerHTML = `<span style="color: #16a34a;">● datenbank.json aktiv (${loadedBankDatabase.length} Buchungen)</span>`;
+                        break;
+                    }
+                } catch (e) {}
+            }
+
+            // 2. Hausgeld-Datenbank automatisch laden
+            const hgUrls = [
+                'Betriebskostenabrechnung/Datenbanken/Hausgeld_Datenbank.json',
+                '/Betriebskostenabrechnung/Datenbanken/Hausgeld_Datenbank.json',
+                'Datenbanken/Hausgeld_Datenbank.json',
+                '/Datenbanken/Hausgeld_Datenbank.json',
+                '../Betriebskostenabrechnung/Datenbanken/Hausgeld_Datenbank.json',
+                '../Datenbanken/Hausgeld_Datenbank.json',
+                'Hausgeld_Datenbank.json',
+                '/Hausgeld_Datenbank.json',
+                'http://localhost:8085/Betriebskostenabrechnung/Datenbanken/Hausgeld_Datenbank.json',
+                'http://localhost:8085/Datenbanken/Hausgeld_Datenbank.json'
+            ];
+            for (const url of hgUrls) {
+                try {
+                    const res = await fetch(url);
+                    if (res.ok) {
+                        const parsed = await res.json();
+                        loadedHausgeldDatabase = Array.isArray(parsed) ? parsed : [parsed];
+                        document.getElementById('hausgeldStatusBadge').innerHTML = `<span style="color: #7c3aed;">● Hausgeld-JSON aktiv (${loadedHausgeldDatabase.length} WE)</span>`;
+                        break;
+                    }
+                } catch (e) {}
+            }
+
+            calculateFromDatabase();
+        });
+    </script>
+</body>
+</html>

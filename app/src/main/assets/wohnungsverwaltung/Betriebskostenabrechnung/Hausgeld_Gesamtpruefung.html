@@ -1,0 +1,1439 @@
+﻿<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hausgeldabrechnungen - Gesamteinsicht &amp; Pr&uuml;fung</title>
+    <style>
+        :root {
+            --primary: #1e3a8a;
+            --primary-dark: #0f172a;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border-color: #cbd5e1;
+            --border-subtle: #e2e8f0;
+            --font-stack: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: var(--font-stack); background-color: #e2e8f0; color: var(--text-main); line-height: 1.45; padding: 20px 12px; }
+
+        .toolbar {
+            max-width: 950px;
+            margin: 0 auto 16px auto;
+            background: #ffffff;
+            padding: 14px 18px;
+            border-radius: 8px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            flex: 1;
+        }
+
+        .control-group label {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--primary);
+            white-space: nowrap;
+        }
+
+        select.form-control {
+            padding: 8px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-main);
+            background-color: #ffffff;
+            outline: none;
+            cursor: pointer;
+            min-width: 540px;
+            max-width: 700px;
+            width: auto;
+        }
+
+        select.form-control:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(30, 58, 138, 0.15);
+        }
+
+        .btn {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 8px 18px;
+            font-size: 13px;
+            font-weight: 600;
+            border-radius: 6px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s ease;
+        }
+        .btn:hover { background-color: #1d4ed8; }
+
+        .container {
+            max-width: 950px;
+            margin: 0 auto;
+            background: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+            padding: 25px 30px;
+        }
+        
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            border-bottom: 2px solid var(--primary);
+            padding-bottom: 8px;
+            margin-bottom: 16px;
+        }
+        .header h1 { font-size: 22px; color: var(--primary); margin: 0; }
+        .header .meta-date { font-size: 12px; color: var(--text-muted); }
+
+        .meta-grid {
+            display: grid;
+            grid-template-columns: 1.2fr 1fr 1fr;
+            gap: 12px;
+            background: #f8fafc;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 10px 14px;
+            margin-bottom: 20px;
+            font-size: 12px;
+        }
+        .meta-item span { display: block; text-transform: uppercase; font-size: 10px; font-weight: bold; color: var(--text-muted); }
+        .meta-item strong { color: var(--text-main); font-size: 13px; }
+
+        h2.section-title {
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--primary);
+            background: #f1f5f9;
+            padding: 6px 10px;
+            border-radius: 4px;
+            margin: 18px 0 8px 0;
+            border-left: 4px solid var(--primary);
+        }
+
+        table { width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 6px; }
+        th { background: #f8fafc; color: #475569; font-weight: 700; text-align: left; padding: 7px 10px; border-bottom: 2px solid var(--border-color); font-size: 11px; text-transform: uppercase; }
+        td { padding: 6px 10px; border-bottom: 1px solid var(--border-subtle); vertical-align: middle; }
+        tr:hover { background: #fafbfc; }
+
+        .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+        .font-bold { font-weight: bold; }
+        
+        .subtotal-row td { background: #f8fafc; font-weight: bold; border-top: 1px solid var(--border-color); border-bottom: 2px solid var(--border-color); }
+        
+        .kpi-summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 18px; margin-bottom: 18px; }
+        .kpi-card { border: 1px solid var(--border-color); border-radius: 6px; padding: 12px 14px; background: #ffffff; font-size: 12px; }
+        .kpi-card-title { font-weight: bold; color: var(--primary); border-bottom: 1px solid var(--border-subtle); padding-bottom: 4px; margin-bottom: 8px; text-transform: uppercase; font-size: 11px; }
+        .kpi-row { display: flex; justify-content: space-between; padding: 3px 0; }
+
+        .saldo-box {
+            border-radius: 6px;
+            padding: 14px 18px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 15px;
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        .nachzahlung { background: #fef2f2; border: 2px solid #b91c1c; color: #b91c1c; }
+        .guthaben { background: #f0fdf4; border: 2px solid #15803d; color: #15803d; }
+
+        .btn-back-container { max-width: 950px; margin: 0 auto 15px auto; }
+        .btn-back { background-color: #f8fafc; color: #1e3a8a; border: 1px solid #cbd5e1; padding: 6px 12px; border-radius: 6px; font-size: 13px; font-weight: bold; cursor: pointer; }
+        .btn-back:hover { background-color: #e2e8f0; }
+
+        @media print {
+            body { background: white !important; margin: 0 !important; padding: 0 !important; }
+            .toolbar, .btn-back-container { display: none !important; }
+            .container { box-shadow: none; padding: 0; max-width: 100%; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="btn-back-container">
+        <button class="btn-back" onclick="window.location.href='/'">🏠 Zurück zum Dashboard</button>
+    </div>
+
+    <div class="toolbar">
+        <div class="control-group">
+            <label for="reportSelect">&#127970; Abrechnung ausw&auml;hlen:</label>
+            <select class="form-control" id="reportSelect" onchange="renderSelectedReport(this.value)"></select>
+        </div>
+        <button class="btn" onclick="window.print()">&#128424; Bericht Drucken / PDF</button>
+    </div>
+
+    <div class="container" id="reportContainer">
+        <div class="header">
+            <div>
+                <h1>Hausgeldabrechnung Pr&uuml;fprotokoll</h1>
+                <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">Vollst&auml;ndige Einzelabrechnung aller Kostenpositionen</div>
+            </div>
+            <div class="meta-date">Import: <strong id="lblImportDatum">-</strong></div>
+        </div>
+
+        <div class="meta-grid">
+            <div class="meta-item">
+                <span>Eigent&uuml;mer</span>
+                <strong id="lblEigentuemer">-</strong>
+            </div>
+            <div class="meta-item">
+                <span>Objekt / Liegenschaft</span>
+                <strong id="lblObjekt">-</strong>
+            </div>
+            <div class="meta-item">
+                <span>Einheit / Anteil</span>
+                <strong id="lblEinheit">-</strong>
+            </div>
+            <div class="meta-item">
+                <span>Abrechnungszeitraum</span>
+                <strong id="lblZeitraum">-</strong>
+            </div>
+            <div class="meta-item">
+                <span>Quelldatei</span>
+                <strong id="lblDatei">-</strong>
+            </div>
+        </div>
+
+        <h2 class="section-title">1. Betriebskosten (Umlagef&auml;hig)</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 280px;">Abrechnungsposten</th>
+                    <th class="num" style="width: 110px;">Gesamt (&euro;)</th>
+                    <th>Verteilerschl&uuml;ssel</th>
+                    <th class="num" style="width: 120px;">Ihr Anteil (&euro;)</th>
+                </tr>
+            </thead>
+            <tbody id="tbodyBK"></tbody>
+            <tfoot>
+                <tr class="subtotal-row">
+                    <td>Summe Betriebskosten</td>
+                    <td class="num">-</td>
+                    <td>-</td>
+                    <td class="num" id="sumBK">-</td>
+                </tr>
+            </tfoot>
+        </table>
+
+        <h2 class="section-title">2. Reparaturen &amp; Instandhaltung</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 280px;">Abrechnungsposten</th>
+                    <th class="num" style="width: 110px;">Gesamt (&euro;)</th>
+                    <th>Verteilerschl&uuml;ssel</th>
+                    <th class="num" style="width: 120px;">Ihr Anteil (&euro;)</th>
+                </tr>
+            </thead>
+            <tbody id="tbodyRep"></tbody>
+            <tfoot>
+                <tr class="subtotal-row">
+                    <td>Summe Reparaturen</td>
+                    <td class="num">-</td>
+                    <td>-</td>
+                    <td class="num" id="sumRep">-</td>
+                </tr>
+            </tfoot>
+        </table>
+
+        <h2 class="section-title">3. Verwaltungskosten &amp; Nicht Umlagef&auml;hig</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 280px;">Abrechnungsposten</th>
+                    <th class="num" style="width: 110px;">Gesamt (&euro;)</th>
+                    <th>Verteilerschl&uuml;ssel</th>
+                    <th class="num" style="width: 120px;">Ihr Anteil (&euro;)</th>
+                </tr>
+            </thead>
+            <tbody id="tbodyVerw"></tbody>
+            <tfoot>
+                <tr class="subtotal-row">
+                    <td>Summe Verwaltungskosten</td>
+                    <td class="num">-</td>
+                    <td>-</td>
+                    <td class="num" id="sumVerw">-</td>
+                </tr>
+            </tfoot>
+        </table>
+
+        <div class="kpi-summary-grid">
+            <div class="kpi-card">
+                <div class="kpi-card-title">Abrechnungsspitze &amp; Vorsch&uuml;sse</div>
+                <div class="kpi-row">
+                    <span>Abrechnungssumme (Gesamtkosten):</span>
+                    <strong class="num" id="lblAbrechnungssumme">-</strong>
+                </div>
+                <div class="kpi-row">
+                    <span>Geleistete Vorauszahlungen (Hausgeld):</span>
+                    <strong class="num" id="lblVorauszahlung">-</strong>
+                </div>
+                <div class="kpi-row" style="border-top: 1px solid var(--border-subtle); margin-top: 4px; padding-top: 4px; font-weight: bold;">
+                    <span>Abrechnungsspitze:</span>
+                    <span class="num" id="lblAbrechnungsspitze">-</span>
+                </div>
+            </div>
+
+            <div class="kpi-card">
+                <div class="kpi-card-title">Erhaltungsr&uuml;cklage (EHR) &amp; R&uuml;ckstellungen</div>
+                <div class="kpi-row">
+                    <span>Anfangsbestand EHR:</span>
+                    <strong class="num" id="lblAnfangEHR">-</strong>
+                </div>
+                <div class="kpi-row">
+                    <span>+ Zuf&uuml;hrung zur R&uuml;cklage (EHR):</span>
+                    <strong class="num" id="lblZufuehrungEHR" style="color: #15803d;">-</strong>
+                </div>
+                <div class="kpi-row">
+                    <span>- Entnahme aus R&uuml;cklage (EHR):</span>
+                    <strong class="num" id="lblEntnahmeEHR" style="color: #b91c1c;">-</strong>
+                </div>
+                <div class="kpi-row" style="border-top: 1px solid var(--border-subtle); margin-top: 4px; padding-top: 4px; font-weight: bold;">
+                    <span>Stand Erhaltungsr&uuml;cklage (Endstand):</span>
+                    <span class="num" id="lblEndstandEHR" style="color: var(--primary); font-weight: bold;">-</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="saldo-box nachzahlung" id="saldoBox">
+            <span id="lblSaldoText">Ihr Abrechnungssaldo:</span>
+            <span id="lblSaldoAmount">-</span>
+        </div>
+    </div>
+
+    <script>
+        const rawJsonData = [
+    {
+        "Datei":  "Abrechnung_2025_WE03.pdf",
+        "ImportDatum":  "22.08.2026 13:11",
+        "Eigentuemer":  "Bernhard Baumgartner",
+        "Objekt":  "Brühlweg 4-4a / 79291 Merdingen",
+        "Abrechnungszeitraum":  "01.01.2025 - 31.12.2025",
+        "Einheit":  "WE 1 EG",
+        "VerwaltungsNr":  "9 / 100",
+        "Positionen":  [
+                           {
+                               "Kategorie":  "Betriebskosten",
+                               "Position":  "Heizung und Wasser",
+                               "Gesamtbetrag":  -9459.18,
+                               "Schluessel":  "Minol-Abrechnung",
+                               "IhrAnteil":  -4719.03
+                           },
+                           {
+                               "Kategorie":  "Betriebskosten",
+                               "Position":  "Niederschlagswasser",
+                               "Gesamtbetrag":  -26.76,
+                               "Schluessel":  "1000,0000 273,0000 Miteigentumsanteil",
+                               "IhrAnteil":  -7.31
+                           },
+                           {
+                               "Kategorie":  "Betriebskosten",
+                               "Position":  "Strom Wohnungen",
+                               "Gesamtbetrag":  -2846.19,
+                               "Schluessel":  "gesonderte Abrechnung",
+                               "IhrAnteil":  0.00
+                           },
+                           {
+                               "Kategorie":  "Betriebskosten",
+                               "Position":  "Trinkwasseranalyse",
+                               "Gesamtbetrag":  -236.91,
+                               "Schluessel":  "1000,0000 273,0000 Miteigentumsanteil",
+                               "IhrAnteil":  -64.68
+                           },
+                           {
+                               "Kategorie":  "Betriebskosten",
+                               "Position":  "Versicherungen",
+                               "Gesamtbetrag":  -1386.46,
+                               "Schluessel":  "1000,0000 273,0000 Miteigentumsanteil",
+                               "IhrAnteil":  -378.50
+                           },
+                           {
+                               "Kategorie":  "Reparaturen",
+                               "Position":  "Kosten Sondereigentum",
+                               "Gesamtbetrag":  -8818.16,
+                               "Schluessel":  "gesonderte Abrechnung",
+                               "IhrAnteil":  -3491.48
+                           },
+                           {
+                               "Kategorie":  "Reparaturen",
+                               "Position":  "Reparaturen Gebäude",
+                               "Gesamtbetrag":  -2618.45,
+                               "Schluessel":  "1000,0000 273,0000 Miteigentumsanteil",
+                               "IhrAnteil":  -714.84
+                           },
+                           {
+                               "Kategorie":  "Reparaturen",
+                               "Position":  "Reparaturen Haupthaus",
+                               "Gesamtbetrag":  -993.52,
+                               "Schluessel":  "727,0000 0,0000 MEA Haupthaus",
+                               "IhrAnteil":  0.00
+                           },
+                           {
+                               "Kategorie":  "Reparaturen",
+                               "Position":  "Reparaturen tech. Einrichtung",
+                               "Gesamtbetrag":  -1411.64,
+                               "Schluessel":  "1000,0000 273,0000 Miteigentumsanteil",
+                               "IhrAnteil":  -385.38
+                           },
+                           {
+                               "Kategorie":  "Verwaltungskosten",
+                               "Position":  "Kontoführungsgebühren",
+                               "Gesamtbetrag":  -170.87,
+                               "Schluessel":  "1000,0000 273,0000 Miteigentumsanteil",
+                               "IhrAnteil":  -46.65
+                           },
+                           {
+                               "Kategorie":  "Verwaltungskosten",
+                               "Position":  "Kosten Ausweis § 35a EStG",
+                               "Gesamtbetrag":  -47.60,
+                               "Schluessel":  "4,0000 1,0000 Verwaltungseinheiten",
+                               "IhrAnteil":  -11.90
+                           },
+                           {
+                               "Kategorie":  "Verwaltungskosten",
+                               "Position":  "Verwalter-Sonderleistungen",
+                               "Gesamtbetrag":  -119.00,
+                               "Schluessel":  "1000,0000 273,0000 Miteigentumsanteil",
+                               "IhrAnteil":  -32.49
+                           },
+                           {
+                               "Kategorie":  "Verwaltungskosten",
+                               "Position":  "Verwaltungskosten",
+                               "Gesamtbetrag":  -1713.60,
+                               "Schluessel":  "4,0000 1,0000 Verwaltungseinheiten",
+                               "IhrAnteil":  -428.40
+                           },
+                           {
+                               "Kategorie":  "Darlehen L-Bank",
+                               "Position":  "Tilgung Darlehen",
+                               "Gesamtbetrag":  -11000.00,
+                               "Schluessel":  "gesonderte Abrechnung",
+                               "IhrAnteil":  0.00
+                           },
+                           {
+                               "Kategorie":  "Darlehen L-Bank",
+                               "Position":  "Zuführung Rücklage Haupthaus",
+                               "Gesamtbetrag":  -3635.00,
+                               "Schluessel":  "00 MEA Haupthaus",
+                               "IhrAnteil":  0.00
+                           },
+                           {
+                               "Kategorie":  "Darlehen L-Bank",
+                               "Position":  "Zuführung Rücklage Anbau",
+                               "Gesamtbetrag":  -1365.00,
+                               "Schluessel":  "00 273,0000 MEA Anbau",
+                               "IhrAnteil":  -1365.00
+                           },
+                           {
+                               "Kategorie":  "Darlehen L-Bank",
+                               "Position":  "02.01.2025          9.100 Hausgeld 1/2025",
+                               "Gesamtbetrag":  552.00,
+                               "Schluessel":  "direkt",
+                               "IhrAnteil":  114.00
+                           },
+                           {
+                               "Kategorie":  "Darlehen L-Bank",
+                               "Position":  "03.02.2025          9.100 Hausgeld 2/2025",
+                               "Gesamtbetrag":  552.00,
+                               "Schluessel":  "direkt",
+                               "IhrAnteil":  114.00
+                           },
+                           {
+                               "Kategorie":  "Darlehen L-Bank",
+                               "Position":  "03.03.2025          9.100 Hausgeld 3/2025",
+                               "Gesamtbetrag":  552.00,
+                               "Schluessel":  "direkt",
+                               "IhrAnteil":  114.00
+                           },
+                           {
+                               "Kategorie":  "Darlehen L-Bank",
+                               "Position":  "01.04.2025          9.100 Hausgeld 4/2025",
+                               "Gesamtbetrag":  552.00,
+                               "Schluessel":  "direkt",
+                               "IhrAnteil":  114.00
+                           },
+                           {
+                               "Kategorie":  "Darlehen L-Bank",
+                               "Position":  "02.05.2025          9.100 Hausgeld 5/2025",
+                               "Gesamtbetrag":  552.00,
+                               "Schluessel":  "direkt",
+                               "IhrAnteil":  114.00
+                           },
+                           {
+                               "Kategorie":  "Darlehen L-Bank",
+                               "Position":  "02.06.2025          9.100 Hausgeld 6/2025",
+                               "Gesamtbetrag":  552.00,
+                               "Schluessel":  "direkt",
+                               "IhrAnteil":  114.00
+                           },
+                           {
+                               "Kategorie":  "Darlehen L-Bank",
+                               "Position":  "01.07.2025          9.100 Hausgeld 7/2025",
+                               "Gesamtbetrag":  552.00,
+                               "Schluessel":  "direkt",
+                               "IhrAnteil":  114.00
+                           },
+                           {
+                               "Kategorie":  "Darlehen L-Bank",
+                               "Position":  "01.08.2025          9.100 Hausgeld 8/2025",
+                               "Gesamtbetrag":  552.00,
+                               "Schluessel":  "direkt",
+                               "IhrAnteil":  114.00
+                           },
+                           {
+                               "Kategorie":  "Darlehen L-Bank",
+                               "Position":  "01.09.2025          9.100 Hausgeld 9/2025",
+                               "Gesamtbetrag":  552.00,
+                               "Schluessel":  "direkt",
+                               "IhrAnteil":  114.00
+                           },
+                           {
+                               "Kategorie":  "Darlehen L-Bank",
+                               "Position":  "02.10.2025          9.100 Hausgeld 10/2025",
+                               "Gesamtbetrag":  552.00,
+                               "Schluessel":  "direkt",
+                               "IhrAnteil":  114.00
+                           },
+                           {
+                               "Kategorie":  "Darlehen L-Bank",
+                               "Position":  "03.11.2025          9.100 Hausgeld 11/2025",
+                               "Gesamtbetrag":  552.00,
+                               "Schluessel":  "direkt",
+                               "IhrAnteil":  114.00
+                           },
+                           {
+                               "Kategorie":  "Darlehen L-Bank",
+                               "Position":  "01.12.2025          9.100 Hausgeld 12/2025",
+                               "Gesamtbetrag":  552.00,
+                               "Schluessel":  "direkt",
+                               "IhrAnteil":  114.00
+                           },
+                           {
+                               "Kategorie":  "Darlehen L-Bank",
+                               "Position":  "18.12.2025          UEBERWEISUNGSGUTSCHR",
+                               "Gesamtbetrag":  2913.08,
+                               "Schluessel":  "direkt",
+                               "IhrAnteil":  0.00
+                           },
+                           {
+                               "Kategorie":  "Darlehen L-Bank",
+                               "Position":  "-9.537,08",
+                               "Gesamtbetrag":  9537.08,
+                               "Schluessel":  "direkt",
+                               "IhrAnteil":  1368.00
+                           },
+                           {
+                               "Kategorie":  "Darlehen L-Bank",
+                               "Position":  "SALDO zum 01.01.2025",
+                               "Gesamtbetrag":  35131.33,
+                               "Schluessel":  "00 0,0000 MEA Haupthaus",
+                               "IhrAnteil":  0.00
+                           },
+                           {
+                               "Kategorie":  "Darlehen L-Bank",
+                               "Position":  "Kapitalertragsteuer",
+                               "Gesamtbetrag":  -56.21,
+                               "Schluessel":  "00 0,0000 MEA Haupthaus",
+                               "IhrAnteil":  0.00
+                           },
+                           {
+                               "Kategorie":  "Darlehen L-Bank",
+                               "Position":  "Zinsen",
+                               "Gesamtbetrag":  224.84,
+                               "Schluessel":  "00 0,0000 MEA Haupthaus",
+                               "IhrAnteil":  0.00
+                           },
+                           {
+                               "Kategorie":  "Darlehen L-Bank",
+                               "Position":  "Solidaritätszuschlag",
+                               "Gesamtbetrag":  -3.09,
+                               "Schluessel":  "00 0,0000 MEA Haupthaus",
+                               "IhrAnteil":  0.00
+                           },
+                           {
+                               "Kategorie":  "Darlehen L-Bank",
+                               "Position":  "Erhaltungsrücklage 2025",
+                               "Gesamtbetrag":  3635.00,
+                               "Schluessel":  "00 0,0000 MEA Haupthaus",
+                               "IhrAnteil":  0.00
+                           },
+                           {
+                               "Kategorie":  "Darlehen L-Bank",
+                               "Position":  "SALDO zum 01.01.2025",
+                               "Gesamtbetrag":  11046.80,
+                               "Schluessel":  "00 273,0000 MEA Anbau",
+                               "IhrAnteil":  11046.80
+                           },
+                           {
+                               "Kategorie":  "Darlehen L-Bank",
+                               "Position":  "Kapitalertragsteuer",
+                               "Gesamtbetrag":  -17.68,
+                               "Schluessel":  "00 273,0000 MEA Anbau",
+                               "IhrAnteil":  -17.68
+                           },
+                           {
+                               "Kategorie":  "Darlehen L-Bank",
+                               "Position":  "Zinsen",
+                               "Gesamtbetrag":  70.71,
+                               "Schluessel":  "00 273,0000 MEA Anbau",
+                               "IhrAnteil":  70.71
+                           },
+                           {
+                               "Kategorie":  "Darlehen L-Bank",
+                               "Position":  "Solidaritätszuschlag",
+                               "Gesamtbetrag":  -0.97,
+                               "Schluessel":  "00 273,0000 MEA Anbau",
+                               "IhrAnteil":  -0.97
+                           },
+                           {
+                               "Kategorie":  "Darlehen L-Bank",
+                               "Position":  "Erhaltungsrücklage 2025",
+                               "Gesamtbetrag":  1365.00,
+                               "Schluessel":  "00 273,0000 MEA Anbau",
+                               "IhrAnteil":  1365.00
+                           },
+                           {
+                               "Kategorie":  "Betriebskosten",
+                               "Position":  "Trinkwasseranalyse",
+                               "Gesamtbetrag":  236.91,
+                               "Schluessel":  "00 273,0000 Miteigentumsanteil",
+                               "IhrAnteil":  64.68
+                           },
+                           {
+                               "Kategorie":  "Reparaturen",
+                               "Position":  "Reparaturen Gebäude",
+                               "Gesamtbetrag":  1769.53,
+                               "Schluessel":  "00 273,0000 Miteigentumsanteil",
+                               "IhrAnteil":  483.08
+                           },
+                           {
+                               "Kategorie":  "Reparaturen",
+                               "Position":  "Reparaturen tech. Einrichtung",
+                               "Gesamtbetrag":  141.02,
+                               "Schluessel":  "00 273,0000 Miteigentumsanteil",
+                               "IhrAnteil":  38.50
+                           }
+                       ],
+        "SummeBK":  -5169.52,
+        "SummeRep":  -4591.70,
+        "SummeVerw":  -519.44,
+        "SummeDarl":  0.00,
+        "Abrechnungssumme":  -10280.66,
+        "Vorauszahlung":  8169.08,
+        "Abrechnungsspitze":  -2111.58,
+        "AnfangEHR":  null,
+        "AnfangEHRGesamt":  null,
+        "ZufuehrungEHR":  null,
+        "ZufuehrungEHRGesamt":  null,
+        "EntnahmeEHR":  null,
+        "EntnahmeEHRGesamt":  null,
+        "EndstandEHR":  null,
+        "EndstandEHRGesamt":  null,
+        "ErgRueckstellung":  3.00,
+        "EndSaldo":  -2108.58
+    },
+    {
+        "Datei":  "Hausgeldabrechnung 2024 - 30-Wo.Nr.  801 - 8.St..pdf",
+        "ImportDatum":  "22.08.2026 13:11",
+        "Eigentuemer":  "Bernhard Baumgartner",
+        "Objekt":  "Martin-Luther-Str. 7, 79312 Emmendingen",
+        "Abrechnungszeitraum":  "01.01.2024 - 31.12.2024",
+        "Einheit":  "Whg. 801",
+        "VerwaltungsNr":  "24.000030",
+        "Positionen":  [
+                           {
+                               "Kategorie":  "Betriebskosten",
+                               "Position":  "Hausmeister",
+                               "Gesamtbetrag":  35183.26,
+                               "Schluessel":  "13,870 / 1000 MEA",
+                               "IhrAnteil":  487.99
+                           },
+                           {
+                               "Kategorie":  "Betriebskosten",
+                               "Position":  "Putzmittel",
+                               "Gesamtbetrag":  68.39,
+                               "Schluessel":  "13,870 / 1000 MEA",
+                               "IhrAnteil":  0.95
+                           },
+                           {
+                               "Kategorie":  "Betriebskosten",
+                               "Position":  "Außenanlage",
+                               "Gesamtbetrag":  2400.00,
+                               "Schluessel":  "13,870 / 1000 MEA",
+                               "IhrAnteil":  33.29
+                           },
+                           {
+                               "Kategorie":  "Betriebskosten",
+                               "Position":  "Heizkosten",
+                               "Gesamtbetrag":  67815.95,
+                               "Schluessel":  "laut Abrechnung",
+                               "IhrAnteil":  801.12
+                           },
+                           {
+                               "Kategorie":  "Betriebskosten",
+                               "Position":  "W asser/Abw./RW M/etc.",
+                               "Gesamtbetrag":  30058.42,
+                               "Schluessel":  "laut Abrechnung",
+                               "IhrAnteil":  251.58
+                           },
+                           {
+                               "Kategorie":  "Betriebskosten",
+                               "Position":  "Niederschlagswasser",
+                               "Gesamtbetrag":  860.76,
+                               "Schluessel":  "13,870 / 1000 MEA",
+                               "IhrAnteil":  11.94
+                           },
+                           {
+                               "Kategorie":  "Betriebskosten",
+                               "Position":  "Kosten Beleuchtung",
+                               "Gesamtbetrag":  4971.76,
+                               "Schluessel":  "13,870 / 1000 MEA",
+                               "IhrAnteil":  68.96
+                           },
+                           {
+                               "Kategorie":  "Betriebskosten",
+                               "Position":  "Kabelgebühren",
+                               "Gesamtbetrag":  4020.10,
+                               "Schluessel":  "W ohnungen 92,000 1,000",
+                               "IhrAnteil":  43.70
+                           },
+                           {
+                               "Kategorie":  "Betriebskosten",
+                               "Position":  "Müllgebühren",
+                               "Gesamtbetrag":  16656.00,
+                               "Schluessel":  "13,870 / 1000 MEA",
+                               "IhrAnteil":  231.02
+                           },
+                           {
+                               "Kategorie":  "Betriebskosten",
+                               "Position":  "Lift - Kosten",
+                               "Gesamtbetrag":  32965.28,
+                               "Schluessel":  "13,870 / 1000 MEA",
+                               "IhrAnteil":  457.23
+                           },
+                           {
+                               "Kategorie":  "Betriebskosten",
+                               "Position":  "Vers.SV Gebäude B-W",
+                               "Gesamtbetrag":  7801.50,
+                               "Schluessel":  "13,870 / 1000 MEA",
+                               "IhrAnteil":  108.21
+                           },
+                           {
+                               "Kategorie":  "Betriebskosten",
+                               "Position":  "Vers. HP + Gewässer",
+                               "Gesamtbetrag":  1686.98,
+                               "Schluessel":  "13,870 / 1000 MEA",
+                               "IhrAnteil":  23.40
+                           },
+                           {
+                               "Kategorie":  "Betriebskosten",
+                               "Position":  "Vers.Leitungswasser",
+                               "Gesamtbetrag":  19860.90,
+                               "Schluessel":  "13,870 / 1000 MEA",
+                               "IhrAnteil":  275.47
+                           },
+                           {
+                               "Kategorie":  "Betriebskosten",
+                               "Position":  "Vers.Glasbruch",
+                               "Gesamtbetrag":  1749.78,
+                               "Schluessel":  "13,870 / 1000 MEA",
+                               "IhrAnteil":  24.27
+                           },
+                           {
+                               "Kategorie":  "Betriebskosten",
+                               "Position":  "W art.techn.Anlagen",
+                               "Gesamtbetrag":  5480.80,
+                               "Schluessel":  "13,870 / 1000 MEA",
+                               "IhrAnteil":  76.02
+                           },
+                           {
+                               "Kategorie":  "Betriebskosten",
+                               "Position":  "Aufschaltung Brandmeld... Miteigentumsanteile",
+                               "Gesamtbetrag":  2214.82,
+                               "Schluessel":  "1.000,000 13,870",
+                               "IhrAnteil":  30.72
+                           },
+                           {
+                               "Kategorie":  "Verwaltungskosten",
+                               "Position":  "Bankspesen",
+                               "Gesamtbetrag":  489.60,
+                               "Schluessel":  "13,870 / 1000 MEA",
+                               "IhrAnteil":  6.79
+                           },
+                           {
+                               "Kategorie":  "Verwaltungskosten",
+                               "Position":  "Rund.Diff.Vorjahre",
+                               "Gesamtbetrag":  0.36,
+                               "Schluessel":  "13,870 / 1000 MEA",
+                               "IhrAnteil":  0.00
+                           },
+                           {
+                               "Kategorie":  "Verwaltungskosten",
+                               "Position":  "Verwaltungsentgelt",
+                               "Gesamtbetrag":  26846.40,
+                               "Schluessel":  "13,870 / 1000 MEA",
+                               "IhrAnteil":  372.36
+                           }
+                       ],
+        "SummeBK":  2925.87,
+        "SummeRep":  0,
+        "SummeVerw":  379.15,
+        "SummeDarl":  0,
+        "Abrechnungssumme":  3305.02,
+        "Vorauszahlung":  3749.04,
+        "Abrechnungsspitze":  444.02,
+        "AnfangEHR":  180.00,
+        "AnfangEHRGesamt":  357738.95,
+        "ZufuehrungEHR":  0.00,
+        "ZufuehrungEHRGesamt":  99371.61,
+        "EntnahmeEHR":  -389.97,
+        "EntnahmeEHRGesamt":  28285.97,
+        "EndstandEHR":  5952.65,
+        "EndstandEHRGesamt":  429174.34,
+        "ErgRueckstellung":  -389.97,
+        "EndSaldo":  444.02
+    },
+    {
+        "Datei":  "Hausgeldabrechnung Brühlweg 4 Merdingen 2024.pdf",
+        "ImportDatum":  "22.08.2026 13:11",
+        "Eigentuemer":  "Bernhard Baumgartner",
+        "Objekt":  "Brühlweg 4-4a / 79291 Merdingen",
+        "Abrechnungszeitraum":  "01.01.2024 - 31.12.2024",
+        "Einheit":  "WE 1 EG",
+        "VerwaltungsNr":  "9 / 100",
+        "Positionen":  [
+                           {
+                               "Kategorie":  "Betriebskosten",
+                               "Position":  "Gartenpflege Haupthaus",
+                               "Gesamtbetrag":  -124.20,
+                               "Schluessel":  "727,0000 0,0000 MEA Haupthaus",
+                               "IhrAnteil":  0.00
+                           },
+                           {
+                               "Kategorie":  "Betriebskosten",
+                               "Position":  "Heizung und Wasser",
+                               "Gesamtbetrag":  -8957.31,
+                               "Schluessel":  "Minol-Abrechnung",
+                               "IhrAnteil":  -4512.72
+                           },
+                           {
+                               "Kategorie":  "Betriebskosten",
+                               "Position":  "Niederschlagswasser",
+                               "Gesamtbetrag":  -44.60,
+                               "Schluessel":  "1000,0000 273,0000 Miteigentumsanteil",
+                               "IhrAnteil":  -12.18
+                           },
+                           {
+                               "Kategorie":  "Betriebskosten",
+                               "Position":  "Strom Wohnungen",
+                               "Gesamtbetrag":  -2264.62,
+                               "Schluessel":  "gesonderte Abrechnung",
+                               "IhrAnteil":  0.00
+                           },
+                           {
+                               "Kategorie":  "Betriebskosten",
+                               "Position":  "Wartung Feuerlöscher",
+                               "Gesamtbetrag":  -41.18,
+                               "Schluessel":  "1000,0000 273,0000 Miteigentumsanteil",
+                               "IhrAnteil":  -11.24
+                           },
+                           {
+                               "Kategorie":  "Betriebskosten",
+                               "Position":  "Wartung Feuerlöscher Haupthaus",
+                               "Gesamtbetrag":  -41.18,
+                               "Schluessel":  "727,0000 0,0000 MEA Haupthaus",
+                               "IhrAnteil":  0.00
+                           },
+                           {
+                               "Kategorie":  "Betriebskosten",
+                               "Position":  "Wartung Feuerlöscher Whg.",
+                               "Gesamtbetrag":  -82.34,
+                               "Schluessel":  "gesonderte Abrechnung",
+                               "IhrAnteil":  0.00
+                           },
+                           {
+                               "Kategorie":  "Betriebskosten",
+                               "Position":  "Versicherungen",
+                               "Gesamtbetrag":  -1166.71,
+                               "Schluessel":  "1000,0000 273,0000 Miteigentumsanteil",
+                               "IhrAnteil":  -318.51
+                           },
+                           {
+                               "Kategorie":  "Reparaturen",
+                               "Position":  "Kosten Sanierung Haupthaus",
+                               "Gesamtbetrag":  -499.80,
+                               "Schluessel":  "2,0000 0,0000 Einheiten Sanierung",
+                               "IhrAnteil":  0.00
+                           },
+                           {
+                               "Kategorie":  "Reparaturen",
+                               "Position":  "Kosten Sondereigentum",
+                               "Gesamtbetrag":  -593.69,
+                               "Schluessel":  "gesonderte Abrechnung",
+                               "IhrAnteil":  -593.69
+                           },
+                           {
+                               "Kategorie":  "Reparaturen",
+                               "Position":  "Reparaturen Haupthaus",
+                               "Gesamtbetrag":  -335.22,
+                               "Schluessel":  "727,0000 0,0000 MEA Haupthaus",
+                               "IhrAnteil":  0.00
+                           },
+                           {
+                               "Kategorie":  "Reparaturen",
+                               "Position":  "Reparaturen tech. Einrichtung",
+                               "Gesamtbetrag":  -4506.29,
+                               "Schluessel":  "1000,0000 273,0000 Miteigentumsanteil",
+                               "IhrAnteil":  -1230.22
+                           },
+                           {
+                               "Kategorie":  "Verwaltungskosten",
+                               "Position":  "Kontoführungsgebühren",
+                               "Gesamtbetrag":  -167.50,
+                               "Schluessel":  "1000,0000 273,0000 Miteigentumsanteil",
+                               "IhrAnteil":  -45.73
+                           },
+                           {
+                               "Kategorie":  "Verwaltungskosten",
+                               "Position":  "Kosten Ausweis § 35a EStG",
+                               "Gesamtbetrag":  -47.60,
+                               "Schluessel":  "4,0000 1,0000 Verwaltungseinheiten",
+                               "IhrAnteil":  -11.90
+                           },
+                           {
+                               "Kategorie":  "Verwaltungskosten",
+                               "Position":  "Sonst. Kosten nicht umlagefähig",
+                               "Gesamtbetrag":  -59.50,
+                               "Schluessel":  "1000,0000 273,0000 Miteigentumsanteil",
+                               "IhrAnteil":  -16.24
+                           },
+                           {
+                               "Kategorie":  "Verwaltungskosten",
+                               "Position":  "Verwaltungskosten",
+                               "Gesamtbetrag":  -1713.60,
+                               "Schluessel":  "4,0000 1,0000 Verwaltungseinheiten",
+                               "IhrAnteil":  -428.40
+                           },
+                           {
+                               "Kategorie":  "Darlehen L-Bank",
+                               "Position":  "Tilgung Darlehen",
+                               "Gesamtbetrag":  -11000.00,
+                               "Schluessel":  "gesonderte Abrechnung",
+                               "IhrAnteil":  0.00
+                           },
+                           {
+                               "Kategorie":  "Darlehen L-Bank",
+                               "Position":  "Zuführung Rücklage Haupthaus",
+                               "Gesamtbetrag":  -3635.00,
+                               "Schluessel":  "00 MEA Haupthaus",
+                               "IhrAnteil":  0.00
+                           },
+                           {
+                               "Kategorie":  "Darlehen L-Bank",
+                               "Position":  "Zuführung Rücklage Anbau",
+                               "Gesamtbetrag":  -1365.00,
+                               "Schluessel":  "00 273,0000 MEA Anbau",
+                               "IhrAnteil":  -1365.00
+                           },
+                           {
+                               "Kategorie":  "Darlehen L-Bank",
+                               "Position":  "02.01.2024          9.100 Hausgeld 1/2024",
+                               "Gesamtbetrag":  506.00,
+                               "Schluessel":  "direkt",
+                               "IhrAnteil":  114.00
+                           },
+                           {
+                               "Kategorie":  "Darlehen L-Bank",
+                               "Position":  "01.02.2024          9.100 Hausgeld 2/2024",
+                               "Gesamtbetrag":  506.00,
+                               "Schluessel":  "direkt",
+                               "IhrAnteil":  114.00
+                           },
+                           {
+                               "Kategorie":  "Darlehen L-Bank",
+                               "Position":  "01.03.2024          9.100 Hausgeld 3/2024",
+                               "Gesamtbetrag":  506.00,
+                               "Schluessel":  "direkt",
+                               "IhrAnteil":  114.00
+                           },
+                           {
+                               "Kategorie":  "Darlehen L-Bank",
+                               "Position":  "03.04.2024          9.100 Hausgeld 4/2024",
+                               "Gesamtbetrag":  506.00,
+                               "Schluessel":  "direkt",
+                               "IhrAnteil":  114.00
+                           },
+                           {
+                               "Kategorie":  "Darlehen L-Bank",
+                               "Position":  "02.05.2024          9.100 Hausgeld 5/2024",
+                               "Gesamtbetrag":  506.00,
+                               "Schluessel":  "direkt",
+                               "IhrAnteil":  114.00
+                           },
+                           {
+                               "Kategorie":  "Darlehen L-Bank",
+                               "Position":  "03.06.2024          9.100 Hausgeld 6/2024",
+                               "Gesamtbetrag":  506.00,
+                               "Schluessel":  "direkt",
+                               "IhrAnteil":  114.00
+                           },
+                           {
+                               "Kategorie":  "Darlehen L-Bank",
+                               "Position":  "01.07.2024          9.100 Hausgeld 7/2024",
+                               "Gesamtbetrag":  506.00,
+                               "Schluessel":  "direkt",
+                               "IhrAnteil":  114.00
+                           },
+                           {
+                               "Kategorie":  "Darlehen L-Bank",
+                               "Position":  "01.08.2024          9.100 Hausgeld 8/2024",
+                               "Gesamtbetrag":  506.00,
+                               "Schluessel":  "direkt",
+                               "IhrAnteil":  114.00
+                           },
+                           {
+                               "Kategorie":  "Darlehen L-Bank",
+                               "Position":  "02.09.2024          9.100 Hausgeld 9/2024",
+                               "Gesamtbetrag":  506.00,
+                               "Schluessel":  "direkt",
+                               "IhrAnteil":  114.00
+                           },
+                           {
+                               "Kategorie":  "Darlehen L-Bank",
+                               "Position":  "01.10.2024          9.100 Hausgeld 10/2024",
+                               "Gesamtbetrag":  506.00,
+                               "Schluessel":  "direkt",
+                               "IhrAnteil":  114.00
+                           },
+                           {
+                               "Kategorie":  "Darlehen L-Bank",
+                               "Position":  "04.11.2024          9.100 Hausgeld 11/2024",
+                               "Gesamtbetrag":  506.00,
+                               "Schluessel":  "direkt",
+                               "IhrAnteil":  114.00
+                           },
+                           {
+                               "Kategorie":  "Darlehen L-Bank",
+                               "Position":  "02.12.2024          9.100 Hausgeld 12/2024",
+                               "Gesamtbetrag":  506.00,
+                               "Schluessel":  "direkt",
+                               "IhrAnteil":  114.00
+                           },
+                           {
+                               "Kategorie":  "Darlehen L-Bank",
+                               "Position":  "-6.072,00",
+                               "Gesamtbetrag":  6072.00,
+                               "Schluessel":  "direkt",
+                               "IhrAnteil":  1368.00
+                           },
+                           {
+                               "Kategorie":  "Darlehen L-Bank",
+                               "Position":  "SALDO zum 01.01.2024",
+                               "Gesamtbetrag":  31287.40,
+                               "Schluessel":  "00 0,0000 MEA Haupthaus",
+                               "IhrAnteil":  0.00
+                           },
+                           {
+                               "Kategorie":  "Darlehen L-Bank",
+                               "Position":  "Zinsen",
+                               "Gesamtbetrag":  283.78,
+                               "Schluessel":  "00 0,0000 MEA Haupthaus",
+                               "IhrAnteil":  0.00
+                           },
+                           {
+                               "Kategorie":  "Darlehen L-Bank",
+                               "Position":  "Solidaritätszuschlag",
+                               "Gesamtbetrag":  -3.90,
+                               "Schluessel":  "00 0,0000 MEA Haupthaus",
+                               "IhrAnteil":  0.00
+                           },
+                           {
+                               "Kategorie":  "Darlehen L-Bank",
+                               "Position":  "Kapitalertragsteuer",
+                               "Gesamtbetrag":  -70.95,
+                               "Schluessel":  "00 0,0000 MEA Haupthaus",
+                               "IhrAnteil":  0.00
+                           },
+                           {
+                               "Kategorie":  "Darlehen L-Bank",
+                               "Position":  "Rücklage 2024",
+                               "Gesamtbetrag":  3635.00,
+                               "Schluessel":  "00 0,0000 MEA Haupthaus",
+                               "IhrAnteil":  0.00
+                           },
+                           {
+                               "Kategorie":  "Darlehen L-Bank",
+                               "Position":  "SALDO zum 01.01.2024",
+                               "Gesamtbetrag":  9584.58,
+                               "Schluessel":  "00 273,0000 MEA Anbau",
+                               "IhrAnteil":  9584.58
+                           },
+                           {
+                               "Kategorie":  "Darlehen L-Bank",
+                               "Position":  "Zinsen",
+                               "Gesamtbetrag":  132.03,
+                               "Schluessel":  "00 273,0000 MEA Anbau",
+                               "IhrAnteil":  132.03
+                           },
+                           {
+                               "Kategorie":  "Darlehen L-Bank",
+                               "Position":  "Solidaritätszuschlag",
+                               "Gesamtbetrag":  -1.81,
+                               "Schluessel":  "00 273,0000 MEA Anbau",
+                               "IhrAnteil":  -1.81
+                           },
+                           {
+                               "Kategorie":  "Darlehen L-Bank",
+                               "Position":  "Kapitalertragsteuer",
+                               "Gesamtbetrag":  -33.00,
+                               "Schluessel":  "00 273,0000 MEA Anbau",
+                               "IhrAnteil":  -33.00
+                           },
+                           {
+                               "Kategorie":  "Darlehen L-Bank",
+                               "Position":  "Rücklage 2024",
+                               "Gesamtbetrag":  1365.00,
+                               "Schluessel":  "00 273,0000 MEA Anbau",
+                               "IhrAnteil":  1365.00
+                           },
+                           {
+                               "Kategorie":  "Betriebskosten",
+                               "Position":  "Wartung Feuerlöscher",
+                               "Gesamtbetrag":  41.18,
+                               "Schluessel":  "00 273,0000 Miteigentumsanteil",
+                               "IhrAnteil":  11.24
+                           },
+                           {
+                               "Kategorie":  "Reparaturen",
+                               "Position":  "Reparaturen tech. Einrichtung",
+                               "Gesamtbetrag":  1360.77,
+                               "Schluessel":  "00 273,0000 Miteigentumsanteil",
+                               "IhrAnteil":  371.49
+                           }
+                       ],
+        "SummeBK":  -4854.65,
+        "SummeRep":  -1823.91,
+        "SummeVerw":  -502.27,
+        "SummeDarl":  0.00,
+        "Abrechnungssumme":  -7180.83,
+        "Vorauszahlung":  4704.00,
+        "Abrechnungsspitze":  -2476.83,
+        "AnfangEHR":  null,
+        "AnfangEHRGesamt":  null,
+        "ZufuehrungEHR":  null,
+        "ZufuehrungEHRGesamt":  null,
+        "EntnahmeEHR":  null,
+        "EntnahmeEHRGesamt":  null,
+        "EndstandEHR":  null,
+        "EndstandEHRGesamt":  null,
+        "ErgRueckstellung":  3.00,
+        "EndSaldo":  -2473.83
+    },
+    {
+        "Datei":  "Jahresabrechnung 2024 - 37-Wo.Nr.  901 - 9.St..pdf",
+        "ImportDatum":  "22.08.2026 13:11",
+        "Eigentuemer":  "Bernhard Baumgartner",
+        "Objekt":  "Martin-Luther-Str. 7, 79312 Emmendingen",
+        "Abrechnungszeitraum":  "01.01.2024 - 31.12.2024",
+        "Einheit":  "Whg. 901",
+        "VerwaltungsNr":  "24.000037",
+        "Positionen":  [
+                           {
+                               "Kategorie":  "Betriebskosten",
+                               "Position":  "Hausmeister",
+                               "Gesamtbetrag":  35183.26,
+                               "Schluessel":  "13,870 / 1000 MEA",
+                               "IhrAnteil":  494.68
+                           },
+                           {
+                               "Kategorie":  "Betriebskosten",
+                               "Position":  "Putzmittel",
+                               "Gesamtbetrag":  68.39,
+                               "Schluessel":  "13,870 / 1000 MEA",
+                               "IhrAnteil":  0.96
+                           },
+                           {
+                               "Kategorie":  "Betriebskosten",
+                               "Position":  "Außenanlage",
+                               "Gesamtbetrag":  2400.00,
+                               "Schluessel":  "13,870 / 1000 MEA",
+                               "IhrAnteil":  33.74
+                           },
+                           {
+                               "Kategorie":  "Betriebskosten",
+                               "Position":  "Heizkosten",
+                               "Gesamtbetrag":  67815.95,
+                               "Schluessel":  "laut Abrechnung",
+                               "IhrAnteil":  739.56
+                           },
+                           {
+                               "Kategorie":  "Betriebskosten",
+                               "Position":  "W asser/Abw./RW M/etc.",
+                               "Gesamtbetrag":  30058.42,
+                               "Schluessel":  "laut Abrechnung",
+                               "IhrAnteil":  80.69
+                           },
+                           {
+                               "Kategorie":  "Betriebskosten",
+                               "Position":  "Niederschlagswasser",
+                               "Gesamtbetrag":  860.76,
+                               "Schluessel":  "13,870 / 1000 MEA",
+                               "IhrAnteil":  12.10
+                           },
+                           {
+                               "Kategorie":  "Betriebskosten",
+                               "Position":  "Kosten Beleuchtung",
+                               "Gesamtbetrag":  4971.76,
+                               "Schluessel":  "13,870 / 1000 MEA",
+                               "IhrAnteil":  69.90
+                           },
+                           {
+                               "Kategorie":  "Betriebskosten",
+                               "Position":  "Kabelgebühren",
+                               "Gesamtbetrag":  4020.10,
+                               "Schluessel":  "W ohnungen 92,000 1,000",
+                               "IhrAnteil":  43.70
+                           },
+                           {
+                               "Kategorie":  "Betriebskosten",
+                               "Position":  "Müllgebühren",
+                               "Gesamtbetrag":  16656.00,
+                               "Schluessel":  "13,870 / 1000 MEA",
+                               "IhrAnteil":  234.18
+                           },
+                           {
+                               "Kategorie":  "Betriebskosten",
+                               "Position":  "Lift - Kosten",
+                               "Gesamtbetrag":  32965.28,
+                               "Schluessel":  "13,870 / 1000 MEA",
+                               "IhrAnteil":  463.49
+                           },
+                           {
+                               "Kategorie":  "Betriebskosten",
+                               "Position":  "Vers.SV Gebäude B-W",
+                               "Gesamtbetrag":  7801.50,
+                               "Schluessel":  "13,870 / 1000 MEA",
+                               "IhrAnteil":  109.69
+                           },
+                           {
+                               "Kategorie":  "Betriebskosten",
+                               "Position":  "Vers. HP + Gewässer",
+                               "Gesamtbetrag":  1686.98,
+                               "Schluessel":  "13,870 / 1000 MEA",
+                               "IhrAnteil":  23.72
+                           },
+                           {
+                               "Kategorie":  "Betriebskosten",
+                               "Position":  "Vers.Leitungswasser",
+                               "Gesamtbetrag":  19860.90,
+                               "Schluessel":  "13,870 / 1000 MEA",
+                               "IhrAnteil":  279.24
+                           },
+                           {
+                               "Kategorie":  "Betriebskosten",
+                               "Position":  "Vers.Glasbruch",
+                               "Gesamtbetrag":  1749.78,
+                               "Schluessel":  "13,870 / 1000 MEA",
+                               "IhrAnteil":  24.60
+                           },
+                           {
+                               "Kategorie":  "Betriebskosten",
+                               "Position":  "W art.techn.Anlagen",
+                               "Gesamtbetrag":  5480.80,
+                               "Schluessel":  "13,870 / 1000 MEA",
+                               "IhrAnteil":  77.06
+                           },
+                           {
+                               "Kategorie":  "Betriebskosten",
+                               "Position":  "Aufschaltung Brandmeld... Miteigentumsanteile",
+                               "Gesamtbetrag":  2214.82,
+                               "Schluessel":  "1.000,000 14,060",
+                               "IhrAnteil":  31.14
+                           },
+                           {
+                               "Kategorie":  "Verwaltungskosten",
+                               "Position":  "Bankspesen",
+                               "Gesamtbetrag":  489.60,
+                               "Schluessel":  "13,870 / 1000 MEA",
+                               "IhrAnteil":  6.88
+                           },
+                           {
+                               "Kategorie":  "Verwaltungskosten",
+                               "Position":  "Rund.Diff.Vorjahre",
+                               "Gesamtbetrag":  0.36,
+                               "Schluessel":  "13,870 / 1000 MEA",
+                               "IhrAnteil":  0.01
+                           },
+                           {
+                               "Kategorie":  "Verwaltungskosten",
+                               "Position":  "Verwaltungsentgelt",
+                               "Gesamtbetrag":  26846.40,
+                               "Schluessel":  "13,870 / 1000 MEA",
+                               "IhrAnteil":  377.46
+                           }
+                       ],
+        "SummeBK":  2718.45,
+        "SummeRep":  0,
+        "SummeVerw":  384.35,
+        "SummeDarl":  0,
+        "Abrechnungssumme":  3102.80,
+        "Vorauszahlung":  3465.96,
+        "Abrechnungsspitze":  363.16,
+        "AnfangEHR":  180.00,
+        "AnfangEHRGesamt":  357738.95,
+        "ZufuehrungEHR":  0.00,
+        "ZufuehrungEHRGesamt":  99371.61,
+        "EntnahmeEHR":  -395.31,
+        "EntnahmeEHRGesamt":  28285.97,
+        "EndstandEHR":  6034.19,
+        "EndstandEHRGesamt":  429174.34,
+        "ErgRueckstellung":  -395.31,
+        "EndSaldo":  363.16
+    }
+];
+        let allReportsData = [];
+
+        if (rawJsonData) {
+            if (Array.isArray(rawJsonData)) {
+                allReportsData = rawJsonData;
+            } else {
+                allReportsData = [rawJsonData];
+            }
+        }
+
+        function formatCurrency(val) {
+            if (val === null || val === undefined || isNaN(val)) return '-';
+            return parseFloat(val).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' &euro;';
+        }
+
+        function initReportSelector() {
+            const select = document.getElementById('reportSelect');
+            select.innerHTML = '';
+
+            if (!allReportsData || allReportsData.length === 0) {
+                select.innerHTML = '<option value="">Keine Abrechnungen vorhanden</option>';
+                return;
+            }
+
+            allReportsData.forEach((rep, index) => {
+                const opt = document.createElement('option');
+                opt.value = index;
+                opt.innerText = `${rep.Objekt} (${rep.Einheit}) - ${rep.Abrechnungszeitraum}`;
+                select.appendChild(opt);
+            });
+
+            renderSelectedReport(0);
+        }
+
+        function renderSelectedReport(index) {
+            const data = allReportsData[index];
+            if (!data) return;
+
+            document.getElementById('lblImportDatum').innerText = data.ImportDatum || '-';
+            document.getElementById('lblEigentuemer').innerText = data.Eigentuemer || '-';
+            document.getElementById('lblObjekt').innerText = data.Objekt || '-';
+            document.getElementById('lblEinheit').innerText = `${data.Einheit} (Verw.-Nr.: ${data.VerwaltungsNr})`;
+            document.getElementById('lblZeitraum').innerText = data.Abrechnungszeitraum || '-';
+            document.getElementById('lblDatei').innerText = data.Datei || '-';
+
+            function populateTbody(tbodyId, categoryName) {
+                const tbody = document.getElementById(tbodyId);
+                tbody.innerHTML = '';
+                const items = (data.Positionen || []).filter(p => p.Kategorie === categoryName);
+
+                if (items.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4" style="color: var(--text-muted); font-style: italic;">Keine Positionen ausgewiesen</td></tr>';
+                    return;
+                }
+
+                items.forEach(p => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${p.Position}</td>
+                        <td class="num">${formatCurrency(p.Gesamtbetrag)}</td>
+                        <td>${p.Schluessel || 'direkt'}</td>
+                        <td class="num font-bold">${formatCurrency(p.IhrAnteil)}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+
+            populateTbody('tbodyBK', 'Betriebskosten');
+            populateTbody('tbodyRep', 'Reparaturen');
+            populateTbody('tbodyVerw', 'Verwaltungskosten');
+
+            document.getElementById('sumBK').innerHTML = formatCurrency(data.SummeBK);
+            document.getElementById('sumRep').innerHTML = formatCurrency(data.SummeRep);
+            document.getElementById('sumVerw').innerHTML = formatCurrency(data.SummeVerw);
+
+            document.getElementById('lblAbrechnungssumme').innerHTML = formatCurrency(data.Abrechnungssumme);
+            document.getElementById('lblVorauszahlung').innerHTML = '+' + formatCurrency(data.Vorauszahlung);
+            document.getElementById('lblAbrechnungsspitze').innerHTML = formatCurrency(data.Abrechnungsspitze);
+
+            if (data.AnfangEHR !== null && data.AnfangEHR !== undefined && data.AnfangEHR !== 0) {
+                const gesInfo = (data.AnfangEHRGesamt && data.AnfangEHRGesamt !== 0) ? ` <span style="font-size:10.5px; font-weight:normal; color:#64748b;">(Gesamt: ${parseFloat(data.AnfangEHRGesamt).toLocaleString('de-DE', {minimumFractionDigits: 2})} &euro;)</span>` : '';
+                document.getElementById('lblAnfangEHR').innerHTML = formatCurrency(data.AnfangEHR) + gesInfo;
+            } else {
+                document.getElementById('lblAnfangEHR').innerHTML = '-';
+            }
+
+            if (data.ZufuehrungEHR !== null && data.ZufuehrungEHR !== undefined && data.ZufuehrungEHR !== 0) {
+                const gesInfo = (data.ZufuehrungEHRGesamt && data.ZufuehrungEHRGesamt !== 0) ? ` <span style="font-size:10.5px; font-weight:normal; color:#64748b;">(Gesamt: ${parseFloat(data.ZufuehrungEHRGesamt).toLocaleString('de-DE', {minimumFractionDigits: 2})} &euro;)</span>` : '';
+                document.getElementById('lblZufuehrungEHR').innerHTML = '+' + formatCurrency(data.ZufuehrungEHR) + gesInfo;
+            } else {
+                document.getElementById('lblZufuehrungEHR').innerHTML = '-';
+            }
+
+            if (data.EntnahmeEHR !== null && data.EntnahmeEHR !== undefined && data.EntnahmeEHR !== 0) {
+                const entnahmeDisplay = Math.abs(parseFloat(data.EntnahmeEHR));
+                const gesInfo = (data.EntnahmeEHRGesamt && data.EntnahmeEHRGesamt !== 0) ? ` <span style="font-size:10.5px; font-weight:normal; color:#64748b;">(Gesamt: ${parseFloat(data.EntnahmeEHRGesamt).toLocaleString('de-DE', {minimumFractionDigits: 2})} &euro;)</span>` : '';
+                document.getElementById('lblEntnahmeEHR').innerHTML = '-' + formatCurrency(entnahmeDisplay) + gesInfo;
+            } else {
+                document.getElementById('lblEntnahmeEHR').innerHTML = '-';
+            }
+
+            if (data.EndstandEHR !== null && data.EndstandEHR !== undefined && data.EndstandEHR !== 0) {
+                const gesInfo = (data.EndstandEHRGesamt && data.EndstandEHRGesamt !== 0) ? ` <span style="font-size:10.5px; font-weight:normal; color:#64748b;">(Gesamt: ${parseFloat(data.EndstandEHRGesamt).toLocaleString('de-DE', {minimumFractionDigits: 2})} &euro;)</span>` : '';
+                document.getElementById('lblEndstandEHR').innerHTML = formatCurrency(data.EndstandEHR) + gesInfo;
+            } else {
+                document.getElementById('lblEndstandEHR').innerHTML = '-';
+            }
+
+            const saldoBox = document.getElementById('saldoBox');
+            const isGuthaben = parseFloat(data.EndSaldo) >= 0;
+            document.getElementById('lblSaldoAmount').innerHTML = formatCurrency(Math.abs(data.EndSaldo));
+
+            if (isGuthaben) {
+                saldoBox.className = 'saldo-box guthaben';
+                document.getElementById('lblSaldoText').innerText = 'Ihr Abrechnungssaldo (Guthaben):';
+            } else {
+                saldoBox.className = 'saldo-box nachzahlung';
+                document.getElementById('lblSaldoText').innerText = 'Ihr Abrechnungssaldo (Gesamtnachzahlung):';
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', initReportSelector);
+    </script>
+</body>
+</html>
