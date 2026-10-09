@@ -46,7 +46,7 @@ jobs:
           -PSIGNING_KEY_ALIAS="${{ secrets.SIGNING_KEY_ALIAS }}" \
           -PSIGNING_KEY_PASSWORD="${{ secrets.SIGNING_KEY_PASSWORD }}" \
           --no-daemon
-      if: secrets.SIGNING_STORE_FILE != ''
+      if: and(secrets.SIGNING_STORE_FILE != '', secrets.SIGNING_STORE_PASSWORD != '', secrets.SIGNING_KEY_ALIAS != '', secrets.SIGNING_KEY_PASSWORD != '')
 
     - name: Warn: Kein Signing-Keystore konfiguriert
       run: |
