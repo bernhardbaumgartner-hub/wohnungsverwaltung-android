@@ -39,6 +39,7 @@ jobs:
         echo "Keystore dekodiert: keystore.jks"
 
     - name: Build Release APK (signiert, installierbar überall)
+      if: and(secrets.SIGNING_STORE_FILE != '', secrets.SIGNING_STORE_PASSWORD != '', secrets.SIGNING_KEY_ALIAS != '', secrets.SIGNING_KEY_PASSWORD != '')
       run: |
         ./gradlew assembleRelease \
           -PSIGNING_STORE_FILE=keystore.jks \
@@ -46,14 +47,13 @@ jobs:
           -PSIGNING_KEY_ALIAS="${{ secrets.SIGNING_KEY_ALIAS }}" \
           -PSIGNING_KEY_PASSWORD="${{ secrets.SIGNING_KEY_PASSWORD }}" \
           --no-daemon
-      if: and(secrets.SIGNING_STORE_FILE != '', secrets.SIGNING_STORE_PASSWORD != '', secrets.SIGNING_KEY_ALIAS != '', secrets.SIGNING_KEY_PASSWORD != '')
 
     - name: Warn: Kein Signing-Keystore konfiguriert
+      if: secrets.SIGNING_STORE_FILE == ''
       run: |
         echo "Kein Signing-Keystore in den GitHub Secrets gefunden."
         echo "Ohne Signierung ist die Release-APK auf den meisten Android-Geräten NICHT installierbar."
         echo "Siehe README.md: Release-APK für Verteilung."
-      if: secrets.SIGNING_STORE_FILE == ''
 
     - name: Upload Debug APK
       uses: actions/upload-artifact@v4
