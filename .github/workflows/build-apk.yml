@@ -32,9 +32,40 @@ jobs:
     - name: Build Debug APK
       run: ./gradlew assembleDebug
 
-    - name: Upload APK
+    - name: Decode signing keystore
+      if: secrets.SIGNING_STORE_FILE != '' && secrets.SIGNING_STORE_PASSWORD != '' && secrets.SIGNING_KEY_ALIAS != '' && secrets.SIGNING_KEY_PASSWORD != ''
+      run: |
+        echo "${{ secrets.SIGNING_STORE_FILE }}" | base64 -d > keystore.jks
+        echo "Keystore dekodiert: keystore.jks"
+
+    - name: Build Release APK (signiert, installierbar überall)
+      run: |
+        ./gradlew assembleRelease \
+          -PSIGNING_STORE_FILE=keystore.jks \
+          -PSIGNING_STORE_PASSWORD="${{ secrets.SIGNING_STORE_PASSWORD }}" \
+          -PSIGNING_KEY_ALIAS="${{ secrets.SIGNING_KEY_ALIAS }}" \
+          -PSIGNING_KEY_PASSWORD="${{ secrets.SIGNING_KEY_PASSWORD }}" \
+          --no-daemon
+      if: secrets.SIGNING_STORE_FILE != ''
+
+    - name: Warn: Kein Signing-Keystore konfiguriert
+      run: |
+        echo "Kein Signing-Keystore in den GitHub Secrets gefunden."
+        echo "Ohne Signierung ist die Release-APK auf den meisten Android-Geräten NICHT installierbar."
+        echo "Siehe README.md: Release-APK für Verteilung."
+      if: secrets.SIGNING_STORE_FILE == ''
+
+    - name: Upload Debug APK
       uses: actions/upload-artifact@v4
       with:
         name: wohnungsverwaltung-debug-apk
         path: app/build/outputs/apk/debug/app-debug.apk
+        retention-days: 30
+
+    - name: Upload Release APK
+      if: success() && secrets.SIGNING_STORE_FILE != ''
+      uses: actions/upload-artifact@v4
+      with:
+        name: wohnungsverwaltung-release-apk
+        path: app/build/outputs/apk/release/app-release.apk
         retention-days: 30

@@ -17,10 +17,24 @@ android {
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        release {
+            if (project.hasProperty('SIGNING_STORE_FILE') && project.hasProperty('SIGNING_STORE_PASSWORD') && project.hasProperty('SIGNING_KEY_ALIAS') && project.hasProperty('SIGNING_KEY_PASSWORD')) {
+                storeFile project.rootProject.file(SIGNING_STORE_FILE)
+                storePassword SIGNING_STORE_PASSWORD
+                keyAlias SIGNING_KEY_ALIAS
+                keyPassword SIGNING_KEY_PASSWORD
+            } else {
+                throw new GradleException("Keystore/Signing-Config fehlt! Setze die Gradle-Properties SIGNING_STORE_FILE, SIGNING_STORE_PASSWORD, SIGNING_KEY_ALIAS, SIGNING_KEY_PASSWORD (z.B. via -P in CI oder lokale keystore.jks im Projektstamm).")
+            }
+        }
+    }
+
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.release
         }
         debug {
             debuggable true
