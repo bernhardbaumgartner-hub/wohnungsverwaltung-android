@@ -38,7 +38,7 @@ jobs:
         echo "${{ secrets.SIGNING_STORE_FILE }}" | base64 -d > keystore.jks
         echo "Keystore dekodiert: keystore.jks"
 
-    - name: Build Release APK (signiert, installierbar überall)
+    - name: Build Release APK (signiert, installierbar ueberall)
       if: ${{ secrets.SIGNING_STORE_FILE != '' }}
       run: |
         ./gradlew assembleRelease \
