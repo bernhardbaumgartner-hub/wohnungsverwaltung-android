@@ -52,8 +52,8 @@ jobs:
       if: ${{ secrets.SIGNING_STORE_FILE == '' }}
       run: |
         echo "Kein Signing-Keystore in den GitHub Secrets gefunden."
-        echo "Ohne Signierung ist die Release-APK auf den meisten Android-Geräten NICHT installierbar."
-        echo "Siehe README.md: Release-APK für Verteilung."
+        echo "Ohne Signierung ist die Release-APK auf den meisten Android-Geraten NICHT installierbar."
+        echo "Siehe README.md: Release-APK fuer Verteilung."
 
     - name: Upload Debug APK
       uses: actions/upload-artifact@v4
